@@ -1,8 +1,11 @@
+// KlakSpout - Spout realtime video sharing plugin for Unity
+// https://github.com/keijiro/KlakSpout
 using UnityEngine;
 
 namespace Klak.Spout
 {
     /// Spout receiver class
+    [AddComponentMenu("Klak/Spout/Spout Receiver")]
     public class SpoutReceiver : MonoBehaviour
     {
         #region Editable properties
@@ -67,14 +70,15 @@ namespace Klak.Spout
         void OnDestroy()
         {
             PluginEntry.Destroy(_receiverID);
-            Destroy(_sharedTexture);
+
+            if (_sharedTexture != null) Destroy(_sharedTexture);
         }
 
         void Update()
         {
             PluginEntry.Poll();
 
-            // Try to initialize the shared texture if not yet.
+            // Try to initialize the shared texture if not yet initialized.
             if (_sharedTexture == null)
             {
                 var ptr = PluginEntry.GetTexturePtr(_receiverID);
