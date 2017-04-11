@@ -58,7 +58,13 @@ namespace Klak.Spout
             }
 
             if (_sharedTexture != null)
-                Graphics.CopyTexture(_renderTarget, _sharedTexture);
+            {
+                if (_renderTarget.IsCreated())
+                {
+                    Graphics.CopyTexture(_renderTarget, _sharedTexture);
+                }
+            } 
+                
         }
 
         #endregion
