@@ -13,6 +13,7 @@ namespace Klak.Spout
 
         int _senderID;
         Texture2D _sharedTexture;
+        Material _fixupMaterial;
 
         #endregion
 
@@ -22,6 +23,7 @@ namespace Klak.Spout
         {
             var camera = GetComponent<Camera>();
             _senderID = PluginEntry.CreateSender(name, camera.pixelWidth, camera.pixelHeight);
+            _fixupMaterial = new Material(Shader.Find("Hidden/Spout/Fixup"));
         }
 
         void OnDestroy()
@@ -53,7 +55,12 @@ namespace Klak.Spout
 
             // Update the shared texture.
             if (_sharedTexture != null)
-                Graphics.CopyTexture(source, _sharedTexture);
+            {
+                var tempRT = RenderTexture.GetTemporary(source.width, source.height);
+                Graphics.Blit(source, tempRT, _fixupMaterial, 0);
+                Graphics.CopyTexture(tempRT, _sharedTexture);
+                RenderTexture.ReleaseTemporary(tempRT);
+            }
 
             // Just transfer the source to the destination.
             Graphics.Blit(source, destination);

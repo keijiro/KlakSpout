@@ -36,9 +36,10 @@ namespace Klak.Spout
         #region Public property
 
         Texture2D _sharedTexture;
+        RenderTexture _fixedTexture;
 
-        public Texture2D receivedTexture {
-            get { return _sharedTexture; }
+        public Texture receivedTexture {
+            get { return _targetTexture != null ? _targetTexture : _fixedTexture; }
         }
 
         #endregion
@@ -46,6 +47,7 @@ namespace Klak.Spout
         #region Private variables
 
         int _receiverID;
+        Material _fixupMaterial;
         MaterialPropertyBlock _propertyBlock;
 
         #endregion
@@ -64,6 +66,7 @@ namespace Klak.Spout
 
             _receiverID = PluginEntry.CreateReceiver(PluginEntry.GetSharedTextureNameString(0));
 
+            _fixupMaterial = new Material(Shader.Find("Hidden/Spout/Fixup"));
             _propertyBlock = new MaterialPropertyBlock();
         }
 
@@ -72,6 +75,7 @@ namespace Klak.Spout
             PluginEntry.Destroy(_receiverID);
 
             if (_sharedTexture != null) Destroy(_sharedTexture);
+            if (_fixedTexture != null) Destroy(_fixedTexture);
         }
 
         void Update()
@@ -96,11 +100,20 @@ namespace Klak.Spout
             if (_sharedTexture != null)
             {
                 if (_targetTexture != null)
-                    Graphics.Blit(_sharedTexture, _targetTexture);
+                {
+                    Graphics.Blit(_sharedTexture, _targetTexture, _fixupMaterial, 1);
+                }
+                else
+                {
+                    if (_fixedTexture == null)
+                        _fixedTexture = new RenderTexture(
+                            _sharedTexture.width, _sharedTexture.height, 0);
+                    Graphics.Blit(_sharedTexture, _fixedTexture, _fixupMaterial, 1);
+                }
 
                 if (_targetRenderer != null)
                 {
-                    _propertyBlock.SetTexture(_targetMaterialProperty, _sharedTexture);
+                    _propertyBlock.SetTexture(_targetMaterialProperty, receivedTexture);
                     _targetRenderer.SetPropertyBlock(_propertyBlock);
                 }
             }
