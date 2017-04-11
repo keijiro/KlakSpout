@@ -125,5 +125,8 @@
     <ClInclude Include="KlakSpoutSender.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="KlakSpoutReceiver.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

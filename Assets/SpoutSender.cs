@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Runtime.InteropServices;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Klak.Spout
 {
@@ -19,8 +17,6 @@ namespace Klak.Spout
         Texture2D _sharedTexture;
         int _senderID;
 
-        static int _lastUpdateFrame;
-
         #endregion
 
         #region MonoBehaviour functions
@@ -33,8 +29,9 @@ namespace Klak.Spout
 
         void OnDestroy()
         {
-            DestroySender(_senderID);
+            PluginEntry.Destroy(_senderID);
             Destroy(_renderTarget);
+            Destroy(_sharedTexture);
         }
 
         void Start()
@@ -42,20 +39,16 @@ namespace Klak.Spout
             _renderTarget = new RenderTexture(_width, _height, 24);
             GetComponent<Camera>().targetTexture = _renderTarget;
 
-            _senderID = CreateSender(name, _width, _height);
+            _senderID = PluginEntry.CreateSender(name, _width, _height);
         }
 
         void Update()
         {
-            if (Time.frameCount != _lastUpdateFrame)
-            {
-                GL.IssuePluginEvent(GetRenderEventFunc(), 0);
-                _lastUpdateFrame = Time.frameCount;
-            }
+            PluginEntry.Poll();
 
             if (_sharedTexture == null)
             {
-                var ptr = GetSenderTexturePtr(_senderID);
+                var ptr = PluginEntry.GetTexturePtr(_senderID);
                 if (ptr != System.IntPtr.Zero)
                     _sharedTexture = Texture2D.CreateExternalTexture(
                         _width, _height, TextureFormat.ARGB32, false, false, ptr);
@@ -64,22 +57,6 @@ namespace Klak.Spout
             if (_sharedTexture != null)
                 Graphics.CopyTexture(_renderTarget, _sharedTexture);
         }
-
-        #endregion
-
-        #region Native plugin interface
-
-        [DllImport("KlakSpout")]
-        static extern System.IntPtr GetRenderEventFunc();
-
-        [DllImport("KlakSpout")]
-        static extern int CreateSender(string name, int width, int height);
-
-        [DllImport("KlakSpout")]
-        static extern void DestroySender(int id);
-
-        [DllImport("KlakSpout")]
-        static extern System.IntPtr GetSenderTexturePtr(int id);
 
         #endregion
     }

@@ -4,8 +4,8 @@
 
 namespace klakspout
 {
-    // Spout sender object
-    class Sender
+    // Spout receiver object
+    class Receiver
     {
     public:
 
@@ -18,20 +18,20 @@ namespace klakspout
         DXGI_FORMAT format_;
 
         // D3D resources and handlers
-        ID3D11Texture2D * texture_;
+        ID3D11Resource * resource_;
         ID3D11ShaderResourceView* view_;
         HANDLE handle_;
 
         // Constructor (only for basic initialization)
-        Sender(int id, string name, unsigned int width, unsigned int height)
+        Receiver(int id, string name)
             : id_(id), name_(name),
-              width_(width), height_(height), format_(DXGI_FORMAT_R8G8B8A8_UNORM),
-              texture_(nullptr), view_(nullptr), handle_(nullptr)
+            format_(DXGI_FORMAT_R8G8B8A8_UNORM),
+            resource_(nullptr), view_(nullptr), handle_(nullptr)
         {
         }
 
         // Destructor
-        ~Sender()
+        ~Receiver()
         {
             Cleanup();
         }
@@ -39,7 +39,7 @@ namespace klakspout
         // Has the texture been already up?
         bool IsReady()
         {
-            return texture_;
+            return resource_;
         }
 
         // Releases all the resources. Can be called multiple times.
@@ -51,11 +51,10 @@ namespace klakspout
                 view_ = nullptr;
             }
 
-            if (texture_)
+            if (resource_)
             {
-                Globals::get().sender_names_->ReleaseSenderName(name_.c_str());
-                texture_->Release();
-                texture_ = nullptr;
+                resource_->Release();
+                resource_ = nullptr;
             }
         }
 
@@ -67,17 +66,27 @@ namespace klakspout
 
             auto & g = Globals::get();
 
-            // Create a shared texture.
-            auto res_spout = g.spout_->CreateSharedDX11Texture(g.d3d11_, width_, height_, format_, &texture_, handle_);
+            // Retrieve the sender information with the name.
+            DWORD format;
+            auto res_spout = g.sender_names_->CheckSender(name_.c_str(), width_, height_, handle_, format);
 
             if (!res_spout)
             {
-                DEBUG_LOG("CreateSharedDX11Texture failed.");
+                DEBUG_LOG("CheckSender failed.");
+                return;
+            }
+
+            // Start using the shared texture.
+            auto res_d3d = g.d3d11_->OpenSharedResource(handle_, __uuidof(ID3D11Resource), reinterpret_cast<void**>(&resource_));
+
+            if (FAILED(res_d3d))
+            {
+                DEBUG_LOG("OpenSharedResource failed (%x).", res_d3d);
                 return;
             }
 
             // Create a resource view for the shared texture.
-            auto res_d3d = g.d3d11_->CreateShaderResourceView(texture_, nullptr, &view_);
+            res_d3d = g.d3d11_->CreateShaderResourceView(resource_, nullptr, &view_);
 
             if (FAILED(res_d3d))
             {
@@ -86,17 +95,7 @@ namespace klakspout
                 return;
             }
 
-            // Start sharing it with creating a Spout sender.
-            res_spout = g.sender_names_->CreateSender(name_.c_str(), width_, height_, handle_, format_);
-
-            if (!res_spout)
-            {
-                DEBUG_LOG("CreateSender failed.");
-                Cleanup();
-                return;
-            }
-
-            DEBUG_LOG("Sender created.");
+            DEBUG_LOG("Receiver created.");
         }
     };
 }

@@ -145,6 +145,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="KlakSpoutGlobals.h" />
+    <ClInclude Include="KlakSpoutReceiver.h" />
     <ClInclude Include="KlakSpoutSender.h" />
     <ClInclude Include="Spout\Spout.h" />
     <ClInclude Include="Spout\SpoutCommon.h" />
