@@ -9,6 +9,9 @@ namespace Klak.Spout
         [SerializeField] int _width = 1280;
         [SerializeField] int _height = 720;
 
+        public int Width { get { return _width; } set { _width = value; } }
+        public int Height { get { return _height; } set { _height = value; } }
+
         #endregion
 
         #region Private resources
