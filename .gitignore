@@ -13,7 +13,6 @@ Extras/KlakSpoutPlugin/KlakSpout/x64
 ExportedObj/
 *.csproj
 *.unityproj
-*.sln
 *.suo
 *.tmp
 *.user
