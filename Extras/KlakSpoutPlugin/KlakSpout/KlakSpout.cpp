@@ -1,19 +1,29 @@
 #include "KlakSpoutGlobals.h"
-#include "KlakSpoutSender.h"
-#include "KlakSpoutReceiver.h"
+#include "KlakSpoutSharedResource.h"
 #include "Unity/IUnityInterface.h"
 #include "Unity/IUnityGraphics.h"
 #include "Unity/IUnityGraphicsD3D11.h"
-#include <vector>
+#include <list>
+#include <memory>
 
 namespace
 {
+    // Low-level native plugin interface
     IUnityInterfaces* unity_;
 
-    // Sender/Receiver list
-    std::vector<klakspout::Sender> senders_;
-    std::vector<klakspout::Receiver> receivers_;
+    // Shared resource list
+    typedef std::list<std::shared_ptr<klakspout::SharedResource>> SharedResourceList;
+    SharedResourceList resources_;
     int last_id_;
+
+    // Find a shared resource with an ID.
+    SharedResourceList::iterator find_shared_resource(int id)
+    {
+        auto it = resources_.begin();
+        for (; it != resources_.end(); it++)
+            if ((*it)->id_ == id) break;
+        return it;
+    }
 
     // Device event callback
     void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType event_type)
@@ -31,9 +41,8 @@ namespace
 
         if (event_type == kUnityGfxDeviceEventShutdown && g.spout_)
         {
-            // Release all the senders/receivers (Cleanup is called in the destructor).
-            senders_.clear();
-            receivers_.clear();
+            // Release all the shared resources.
+            resources_.clear();
 
             // Finalize the Spout globals.
             delete g.spout_;
@@ -50,9 +59,8 @@ namespace
 
         if (event_id == 0)
         {
-            // Set up all the senders/receivers that is not ready yet.
-            for (auto & sender : senders_) if (!sender.IsReady()) sender.Setup();
-            for (auto & receiver : receivers_) if (!receiver.IsReady()) receiver.Setup();
+            // Set up all the shared resources that are not ready at this point.
+            for (auto rp : resources_) if (!rp->IsReady()) rp->Setup();
         }
     }
 }
@@ -100,58 +108,40 @@ extern "C" UnityRenderingEvent UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API GetRen
 
 extern "C" UNITY_INTERFACE_EXPORT int CreateSender(const char* name, int width, int height)
 {
-    senders_.push_back(klakspout::Sender(last_id_++, name, width, height));
-    return senders_.back().id_;
+    auto id = last_id_++;
+    resources_.emplace_front(new klakspout::Sender(id, name, width, height));
+    return id;
 }
 
 extern "C" UNITY_INTERFACE_EXPORT int CreateReceiver(const char* name)
 {
-    receivers_.push_back(klakspout::Receiver(last_id_++, name));
-    return receivers_.back().id_;
+    auto id = last_id_++;
+    resources_.emplace_front(new klakspout::Receiver(id, name));
+    return id;
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void Destroy(int id)
 {
-    // Simply scan all the senders/receivers and release found one.
-    for (auto it = senders_.begin(); it != senders_.end(); it++)
-    {
-        if (it->id_ == id)
-        {
-            it->Cleanup();
-            senders_.erase(it);
-            return;
-        }
-    }
-    for (auto it = receivers_.begin(); it != receivers_.end(); it++)
-    {
-        if (it->id_ == id)
-        {
-            it->Cleanup();
-            receivers_.erase(it);
-            return;
-        }
-    }
+    auto it = find_shared_resource(id);
+    if (it != resources_.end()) resources_.erase(it);
 }
 
 extern "C" void UNITY_INTERFACE_EXPORT * GetTexturePtr(int id)
 {
-    for (auto & sender : senders_) if (sender.id_ == id) return sender.view_;
-    for (auto & receiver : receivers_) if (receiver.id_ == id) return receiver.view_;
-    return nullptr; // No such a sender/receiver was found.
+    auto it = find_shared_resource(id);
+    return it != resources_.end() ? (*it)->view_ : nullptr;
 }
 
 extern "C" int UNITY_INTERFACE_EXPORT GetTextureWidth(int id)
 {
-    for (auto & sender : senders_) if (sender.id_ == id) return sender.width_;
-    for (auto & receiver : receivers_) if (receiver.id_ == id) return receiver.width_;
-    return 0; // No such a sender/receiver was found.
+    auto it = find_shared_resource(id);
+    return it != resources_.end() ? (*it)->width_ : 0;
 }
 
 extern "C" int UNITY_INTERFACE_EXPORT GetTextureHeight(int id)
 {
-    for (auto & sender : senders_) if (sender.id_ == id) return sender.height_;
-    for (auto & receiver : receivers_) if (receiver.id_ == id) return receiver.height_;
-    return 0; // No such a sender/receiver was found.
+    auto it = find_shared_resource(id);
+    return it != resources_.end() ? (*it)->height_ : 0;
 }
 
 extern "C" int UNITY_INTERFACE_EXPORT CountSharedTextures()

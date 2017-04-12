@@ -122,10 +122,7 @@
     <ClInclude Include="KlakSpoutGlobals.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="KlakSpoutSender.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="KlakSpoutReceiver.h">
+    <ClInclude Include="KlakSpoutSharedResource.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
