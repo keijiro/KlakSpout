@@ -9,6 +9,17 @@ namespace Klak.Spout
     [RequireComponent(typeof(Camera))]
     public class SpoutSender : MonoBehaviour
     {
+        #region Editable properties
+
+        [SerializeField] bool _clearAlpha = true;
+
+        public bool clearAlpha {
+            get { return _clearAlpha; }
+            set { _clearAlpha = value; }
+        }
+
+        #endregion
+
         #region Private variables
 
         int _senderID;
@@ -36,6 +47,8 @@ namespace Klak.Spout
         void Update()
         {
             PluginEntry.Poll();
+
+            _fixupMaterial.SetFloat("_ClearAlpha", _clearAlpha ? 1 : 0);
         }
 
         void OnRenderImage(RenderTexture source, RenderTexture destination)

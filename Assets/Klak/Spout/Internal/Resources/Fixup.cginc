@@ -3,6 +3,7 @@
 #include "UnityCG.cginc"
 
 sampler2D _MainTex;
+fixed _ClearAlpha;
 
 v2f_img vert(appdata_img v)
 {
@@ -18,5 +19,6 @@ fixed4 frag(v2f_img i) : SV_Target
     #if defined(SPOUT_RECEIVER) && !defined(UNITY_COLORSPACE_GAMMA)
         col.rgb = GammaToLinearSpace(col.rgb);
     #endif
+    col.a = saturate(col.a + _ClearAlpha);
     return col;
 }

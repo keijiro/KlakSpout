@@ -14,6 +14,14 @@ namespace Klak.Spout
             EditorWindow.GetWindow<SpoutSenderListWindow>("Spout Senders").Show();
         }
 
+        int _updateCount;
+
+        void OnInspectorUpdate()
+        {
+            // Update once per eight calls.
+            if ((_updateCount++ & 7) == 0) Repaint();
+        }
+
         void OnGUI()
         {
             var count = PluginEntry.CountSharedTextures();
@@ -29,7 +37,7 @@ namespace Klak.Spout
             for (var i = 0; i < count; i++)
             {
                 var name = PluginEntry.GetSharedTextureNameString(i);
-                if (name != null) EditorGUILayout.SelectableLabel(name);
+                if (name != null) EditorGUILayout.LabelField("- " + name);
             }
 
             EditorGUI.indentLevel--;

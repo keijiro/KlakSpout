@@ -9,8 +9,20 @@ namespace Klak.Spout
     [CustomEditor(typeof(SpoutSender))]
     public class SpoutSenderEditor : Editor
     {
+        SerializedProperty _clearAlpha;
+
+        void OnEnable()
+        {
+            _clearAlpha = serializedObject.FindProperty("_clearAlpha");
+        }
+
         public override void OnInspectorGUI()
         {
+            serializedObject.Update();
+
+            EditorGUILayout.PropertyField(_clearAlpha);
+
+            serializedObject.ApplyModifiedProperties();
         }
     }
 }
