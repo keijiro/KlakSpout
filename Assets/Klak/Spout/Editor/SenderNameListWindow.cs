@@ -6,12 +6,12 @@ using UnityEditor;
 namespace Klak.Spout
 {
     // Spout sender list window
-    public class SenderListWindow : EditorWindow
+    public class SenderNameListWindow : EditorWindow
     {
         [MenuItem("Window/Klak/Spout Sender List")]
         static void Init()
         {
-            EditorWindow.GetWindow<SenderListWindow>("Spout Senders").Show();
+            EditorWindow.GetWindow<SenderNameListWindow>("Spout Senders").Show();
         }
 
         void OnGUI()
