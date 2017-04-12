@@ -4,6 +4,8 @@
 /[Bb]uild/
 /[Bb]uilds/
 
+*.unitypackage
+
 # Visual Studio
 Extras/KlakSpoutPlugin/x64
 Extras/KlakSpoutPlugin/KlakSpout/x64
