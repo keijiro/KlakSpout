@@ -1,3 +1,5 @@
+// KlakSpout - Spout realtime video sharing plugin for Unity
+// https://github.com/keijiro/KlakSpout
 #include "UnityCG.cginc"
 
 sampler2D _MainTex;

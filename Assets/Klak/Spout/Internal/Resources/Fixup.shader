@@ -1,4 +1,6 @@
-﻿Shader "Hidden/Spout/Fixup"
+﻿// KlakSpout - Spout realtime video sharing plugin for Unity
+// https://github.com/keijiro/KlakSpout
+Shader "Hidden/Spout/Fixup"
 {
     Properties
     {

@@ -10,6 +10,13 @@ namespace Klak.Spout
     {
         #region Editable properties
 
+        [SerializeField] string _nameFilter;
+
+        public string nameFilter {
+            get { return _nameFilter; }
+            set { _nameFilter = value; }
+        }
+
         [SerializeField] RenderTexture _targetTexture;
 
         public RenderTexture targetTexture {
@@ -50,30 +57,28 @@ namespace Klak.Spout
         Material _fixupMaterial;
         MaterialPropertyBlock _propertyBlock;
 
+        void SearchTexture()
+        {
+            var name = PluginEntry.SearchSharedTextureNameString(_nameFilter);
+            if (name != null) _receiverID = PluginEntry.CreateReceiver(name);
+        }
+
         #endregion
 
         #region MonoBehaviour functions
 
         void Start()
         {
-            var senderCount = PluginEntry.CountSharedTextures();
-
-            if (senderCount == 0)
-            {
-                Destroy(this);
-                return;
-            }
-
-            _receiverID = PluginEntry.CreateReceiver(PluginEntry.GetSharedTextureNameString(0));
-
             _fixupMaterial = new Material(Shader.Find("Hidden/Spout/Fixup"));
             _propertyBlock = new MaterialPropertyBlock();
+
+            // Initial search.
+            SearchTexture();
         }
 
         void OnDestroy()
         {
-            PluginEntry.Destroy(_receiverID);
-
+            if (_receiverID != 0) PluginEntry.Destroy(_receiverID);
             if (_sharedTexture != null) Destroy(_sharedTexture);
             if (_fixedTexture != null) Destroy(_fixedTexture);
         }
@@ -82,8 +87,11 @@ namespace Klak.Spout
         {
             PluginEntry.Poll();
 
+            // Search the texture list if we haven't found one.
+            if (_receiverID == 0) SearchTexture();
+
             // Try to initialize the shared texture if not yet initialized.
-            if (_sharedTexture == null)
+            if (_receiverID != 0 && _sharedTexture == null)
             {
                 var ptr = PluginEntry.GetTexturePtr(_receiverID);
                 if (ptr != System.IntPtr.Zero)

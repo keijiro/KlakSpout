@@ -1,3 +1,5 @@
+// KlakSpout - Spout realtime video sharing plugin for Unity
+// https://github.com/keijiro/KlakSpout
 using UnityEngine;
 using System.Runtime.InteropServices;
 
@@ -51,7 +53,17 @@ namespace Klak.Spout
 
         public static string GetSharedTextureNameString(int index)
         {
-            return Marshal.PtrToStringAnsi(GetSharedTextureName(index));
+            var ptr = GetSharedTextureName(index);
+            return ptr != System.IntPtr.Zero ? Marshal.PtrToStringAnsi(ptr) : null;
+        }
+
+        [DllImport("KlakSpout")]
+        public static extern System.IntPtr SearchSharedTextureName(string keyword);
+
+        public static string SearchSharedTextureNameString(string keyword)
+        {
+            var ptr = SearchSharedTextureName(keyword);
+            return ptr != System.IntPtr.Zero ? Marshal.PtrToStringAnsi(ptr) : null;
         }
 
         #endregion

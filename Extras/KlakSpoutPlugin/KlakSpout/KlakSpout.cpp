@@ -14,7 +14,7 @@ namespace
     // Shared resource list
     typedef std::list<std::shared_ptr<klakspout::SharedResource>> SharedResourceList;
     SharedResourceList resources_;
-    int last_id_;
+    int last_id_ = 1;
 
     // Find a shared resource with an ID.
     SharedResourceList::iterator find_shared_resource(int id)
@@ -149,11 +149,58 @@ extern "C" int UNITY_INTERFACE_EXPORT CountSharedTextures()
     return klakspout::Globals::get().sender_names_->GetSenderCount();
 }
 
-extern "C" void UNITY_INTERFACE_EXPORT * GetSharedTextureName(int index)
+extern "C" const void UNITY_INTERFACE_EXPORT * GetSharedTextureName(int index)
 {
-    static char name[SpoutMaxSenderNameLen];
-    unsigned int width, height;
-    HANDLE handle;
-    klakspout::Globals::get().sender_names_->GetSenderNameInfo(index, name, SpoutMaxSenderNameLen, width, height, handle);
-    return name;
+    // Static string object used for storing a result.
+    static string temp;
+
+    // Retrieve all the sender names.
+    std::set<std::string> names;
+    klakspout::Globals::get().sender_names_->GetSenderNames(&names);
+
+    // Return the n-th element.
+    auto count = 0;
+    for (auto & name : names)
+    {
+        if (count++ == index)
+        {
+            temp = name;
+            return temp.c_str();
+        }
+    }
+
+    return nullptr;
+}
+
+extern "C" const void UNITY_INTERFACE_EXPORT * SearchSharedTextureName(const char* keyword)
+{
+    // Static string object used for storing a result.
+    static string temp;
+
+    // Retrieve all the sender names.
+    std::set<std::string> names;
+    klakspout::Globals::get().sender_names_->GetSenderNames(&names);
+
+    // Do nothing if the name list is empty.
+    if (names.size() == 0) return nullptr;
+
+    // Return the first element if the keyword is empty.
+    if (keyword == nullptr || *keyword == 0)
+    {
+        temp = *names.begin();
+        return temp.c_str();
+    }
+
+    // Scan the name list.
+    for (auto & name : names)
+    {
+        if (name.find(keyword) != std::string::npos)
+        {
+            temp = name;
+            return temp.c_str();
+        }
+    }
+
+    // Nothing found.
+    return nullptr;
 }

@@ -21,15 +21,15 @@ namespace Klak.Spout
 
         void Start()
         {
+            _fixupMaterial = new Material(Shader.Find("Hidden/Spout/Fixup"));
+
             var camera = GetComponent<Camera>();
             _senderID = PluginEntry.CreateSender(name, camera.pixelWidth, camera.pixelHeight);
-            _fixupMaterial = new Material(Shader.Find("Hidden/Spout/Fixup"));
         }
 
         void OnDestroy()
         {
-            PluginEntry.Destroy(_senderID);
-
+            if (_senderID != 0) PluginEntry.Destroy(_senderID);
             if (_sharedTexture != null) Destroy(_sharedTexture);
         }
 
@@ -41,7 +41,7 @@ namespace Klak.Spout
         void OnRenderImage(RenderTexture source, RenderTexture destination)
         {
             // Try to initialize the shared texture if not yet initialized.
-            if (_sharedTexture == null)
+            if (_senderID != 0 && _sharedTexture == null)
             {
                 var ptr = PluginEntry.GetTexturePtr(_senderID);
                 if (ptr != System.IntPtr.Zero)
