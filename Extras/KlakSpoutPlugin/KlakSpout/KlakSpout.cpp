@@ -1,5 +1,5 @@
 #include "KlakSpoutGlobals.h"
-#include "KlakSpoutSharedResource.h"
+#include "KlakSpoutSharedObject.h"
 #include "Unity/IUnityInterface.h"
 #include "Unity/IUnityGraphics.h"
 #include "Unity/IUnityGraphicsD3D11.h"
@@ -11,26 +11,22 @@ namespace
     // Low-level native plugin interface
     IUnityInterfaces* unity_;
 
-    // Shared resource list
-    typedef std::list<std::shared_ptr<klakspout::SharedResource>> SharedResourceList;
-    SharedResourceList resources_;
-    int last_id_ = 1;
+    // Shared object list
+    typedef std::list<std::shared_ptr<klakspout::SharedObject>> SharedObjectList;
+    SharedObjectList shared_objects_;
 
-    // Find a shared resource with an ID.
-    SharedResourceList::iterator find_shared_resource(int id)
+    // Remove a given object from the list.
+    void remove_shared_object(klakspout::SharedObject* pobj)
     {
-        auto it = resources_.begin();
-        for (; it != resources_.end(); it++)
-            if ((*it)->id_ == id) break;
-        return it;
+        shared_objects_.remove_if([pobj](auto & sp) { return sp.get() == pobj; });
     }
 
     // Device event callback
     void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType event_type)
     {
-        DEBUG_LOG("OnGraphicsDeviceEvent(%d)", event_type);
-
         auto & g = klakspout::Globals::get();
+
+        DEBUG_LOG("OnGraphicsDeviceEvent(%d)", event_type);
 
         if (event_type == kUnityGfxDeviceEventInitialize && !g.spout_)
         {
@@ -42,7 +38,7 @@ namespace
         if (event_type == kUnityGfxDeviceEventShutdown && g.spout_)
         {
             // Release all the shared resources.
-            resources_.clear();
+            shared_objects_.clear();
 
             // Finalize the Spout globals.
             delete g.spout_;
@@ -55,13 +51,8 @@ namespace
     // Render event callback
     void UNITY_INTERFACE_API OnRenderEvent(int event_id)
     {
-        DEBUG_LOG("OnRenderEvent(%d)", event_id);
-
-        if (event_id == 0)
-        {
-            // Set up all the shared resources that are not ready at this point.
-            for (auto rp : resources_) if (!rp->IsReady()) rp->Setup();
-        }
+        // Update all the D3D11 resources. This has to be done in the render thread.
+        for (auto p : shared_objects_) p->updateResources();
     }
 }
 
@@ -71,14 +62,14 @@ namespace
 
 extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces* interfaces)
 {
+    auto & g = klakspout::Globals::get();
+
     // Open a new console on debug builds.
     #if defined(_DEBUG)
     FILE * pConsole;
     AllocConsole();
     freopen_s(&pConsole, "CONOUT$", "wb", stdout);
     #endif
-
-    auto & g = klakspout::Globals::get();
 
     // Retrieve the interface pointers.
     unity_ = interfaces;
@@ -103,60 +94,63 @@ extern "C" UnityRenderingEvent UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API GetRen
 }
 
 //
-//  Native plugin functions
+// Native plugin functions
 //
 
-extern "C" UNITY_INTERFACE_EXPORT int CreateSender(const char* name, int width, int height)
+extern "C" void UNITY_INTERFACE_EXPORT * CreateSender(const char* name, int width, int height)
 {
-    auto id = last_id_++;
-    resources_.emplace_front(new klakspout::Sender(id, name, width, height));
-    return id;
+    auto pobj = new klakspout::SharedObject(klakspout::SharedObject::kSender, name, width, height);
+    shared_objects_.emplace_front(pobj);
+    return pobj;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT int CreateReceiver(const char* name)
+extern "C" void UNITY_INTERFACE_EXPORT * CreateReceiver(const char* name)
 {
-    auto id = last_id_++;
-    resources_.emplace_front(new klakspout::Receiver(id, name));
-    return id;
+    auto pobj = new klakspout::SharedObject(klakspout::SharedObject::kReceiver, name);
+    shared_objects_.emplace_front(pobj);
+    return pobj;
 }
 
-extern "C" UNITY_INTERFACE_EXPORT void Destroy(int id)
+extern "C" UNITY_INTERFACE_EXPORT void DestroySharedObject(void* ptr)
 {
-    auto it = find_shared_resource(id);
-    if (it != resources_.end()) resources_.erase(it);
+    remove_shared_object(reinterpret_cast<klakspout::SharedObject*>(ptr));
 }
 
-extern "C" void UNITY_INTERFACE_EXPORT * GetTexturePtr(int id)
+extern "C" bool UNITY_INTERFACE_EXPORT DetectDisconnection(void* ptr)
 {
-    auto it = find_shared_resource(id);
-    return it != resources_.end() ? (*it)->view_ : nullptr;
+    return reinterpret_cast<klakspout::SharedObject*>(ptr)->detectDisconnection();
 }
 
-extern "C" int UNITY_INTERFACE_EXPORT GetTextureWidth(int id)
+extern "C" void UNITY_INTERFACE_EXPORT * GetTexturePointer(void* ptr)
 {
-    auto it = find_shared_resource(id);
-    return it != resources_.end() ? (*it)->width_ : 0;
+    return reinterpret_cast<klakspout::SharedObject*>(ptr)->d3d11_resource_view_;
 }
 
-extern "C" int UNITY_INTERFACE_EXPORT GetTextureHeight(int id)
+extern "C" int UNITY_INTERFACE_EXPORT GetTextureWidth(void* ptr)
 {
-    auto it = find_shared_resource(id);
-    return it != resources_.end() ? (*it)->height_ : 0;
+    return reinterpret_cast<klakspout::SharedObject*>(ptr)->width_;
 }
 
-extern "C" int UNITY_INTERFACE_EXPORT CountSharedTextures()
+extern "C" int UNITY_INTERFACE_EXPORT GetTextureHeight(void* ptr)
+{
+    return reinterpret_cast<klakspout::SharedObject*>(ptr)->height_;
+}
+
+extern "C" int UNITY_INTERFACE_EXPORT CountSharedObjects()
 {
     return klakspout::Globals::get().sender_names_->GetSenderCount();
 }
 
-extern "C" const void UNITY_INTERFACE_EXPORT * GetSharedTextureName(int index)
+extern "C" const void UNITY_INTERFACE_EXPORT * GetSharedObjectName(int index)
 {
+    auto & g = klakspout::Globals::get();
+
     // Static string object used for storing a result.
     static string temp;
 
     // Retrieve all the sender names.
     std::set<std::string> names;
-    klakspout::Globals::get().sender_names_->GetSenderNames(&names);
+    g.sender_names_->GetSenderNames(&names);
 
     // Return the n-th element.
     auto count = 0;
@@ -172,14 +166,16 @@ extern "C" const void UNITY_INTERFACE_EXPORT * GetSharedTextureName(int index)
     return nullptr;
 }
 
-extern "C" const void UNITY_INTERFACE_EXPORT * SearchSharedTextureName(const char* keyword)
+extern "C" const void UNITY_INTERFACE_EXPORT * SearchSharedObjectName(const char* keyword)
 {
+    auto & g = klakspout::Globals::get();
+
     // Static string object used for storing a result.
     static string temp;
 
     // Retrieve all the sender names.
     std::set<std::string> names;
-    klakspout::Globals::get().sender_names_->GetSenderNames(&names);
+    g.sender_names_->GetSenderNames(&names);
 
     // Do nothing if the name list is empty.
     if (names.size() == 0) return nullptr;

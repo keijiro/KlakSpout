@@ -22,7 +22,7 @@ namespace Klak.Spout
 
         #region Private variables
 
-        int _senderID;
+        System.IntPtr _sender;
         Texture2D _sharedTexture;
         Material _fixupMaterial;
 
@@ -35,12 +35,12 @@ namespace Klak.Spout
             _fixupMaterial = new Material(Shader.Find("Hidden/Spout/Fixup"));
 
             var camera = GetComponent<Camera>();
-            _senderID = PluginEntry.CreateSender(name, camera.pixelWidth, camera.pixelHeight);
+            _sender = PluginEntry.CreateSender(name, camera.pixelWidth, camera.pixelHeight);
         }
 
         void OnDestroy()
         {
-            if (_senderID != 0) PluginEntry.Destroy(_senderID);
+            if (_sender != System.IntPtr.Zero) PluginEntry.DestroySharedObject(_sender);
             if (_sharedTexture != null) Destroy(_sharedTexture);
         }
 
@@ -54,9 +54,9 @@ namespace Klak.Spout
         void OnRenderImage(RenderTexture source, RenderTexture destination)
         {
             // Try to initialize the shared texture if not yet initialized.
-            if (_senderID != 0 && _sharedTexture == null)
+            if (_sender != System.IntPtr.Zero && _sharedTexture == null)
             {
-                var ptr = PluginEntry.GetTexturePtr(_senderID);
+                var ptr = PluginEntry.GetTexturePointer(_sender);
                 if (ptr != System.IntPtr.Zero)
                 {
                     _sharedTexture = Texture2D.CreateExternalTexture(

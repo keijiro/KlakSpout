@@ -28,41 +28,44 @@ namespace Klak.Spout
         public static extern System.IntPtr GetRenderEventFunc();
 
         [DllImport("KlakSpout")]
-        public static extern int CreateSender(string name, int width, int height);
+        public static extern System.IntPtr CreateSender(string name, int width, int height);
 
         [DllImport("KlakSpout")]
-        public static extern int CreateReceiver(string name);
+        public static extern System.IntPtr CreateReceiver(string name);
 
         [DllImport("KlakSpout")]
-        public static extern void Destroy(int id);
+        public static extern void DestroySharedObject(System.IntPtr ptr);
 
         [DllImport("KlakSpout")]
-        public static extern int GetTextureWidth(int id);
+        public static extern bool DetectDisconnection(System.IntPtr ptr);
 
         [DllImport("KlakSpout")]
-        public static extern int GetTextureHeight(int id);
+        public static extern System.IntPtr GetTexturePointer(System.IntPtr ptr);
 
         [DllImport("KlakSpout")]
-        public static extern System.IntPtr GetTexturePtr(int id);
+        public static extern int GetTextureWidth(System.IntPtr ptr);
 
         [DllImport("KlakSpout")]
-        public static extern int CountSharedTextures();
+        public static extern int GetTextureHeight(System.IntPtr ptr);
 
         [DllImport("KlakSpout")]
-        public static extern System.IntPtr GetSharedTextureName(int index);
+        public static extern int CountSharedObjects();
 
-        public static string GetSharedTextureNameString(int index)
+        [DllImport("KlakSpout")]
+        public static extern System.IntPtr GetSharedObjectName(int index);
+
+        public static string GetSharedObjectNameString(int index)
         {
-            var ptr = GetSharedTextureName(index);
+            var ptr = GetSharedObjectName(index);
             return ptr != System.IntPtr.Zero ? Marshal.PtrToStringAnsi(ptr) : null;
         }
 
         [DllImport("KlakSpout")]
-        public static extern System.IntPtr SearchSharedTextureName(string keyword);
+        public static extern System.IntPtr SearchSharedObjectName(string keyword);
 
-        public static string SearchSharedTextureNameString(string keyword)
+        public static string SearchSharedObjectNameString(string keyword)
         {
-            var ptr = SearchSharedTextureName(keyword);
+            var ptr = SearchSharedObjectName(keyword);
             return ptr != System.IntPtr.Zero ? Marshal.PtrToStringAnsi(ptr) : null;
         }
 

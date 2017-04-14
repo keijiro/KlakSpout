@@ -24,7 +24,7 @@ namespace Klak.Spout
 
         void OnGUI()
         {
-            var count = PluginEntry.CountSharedTextures();
+            var count = PluginEntry.CountSharedObjects();
 
             EditorGUILayout.Space();
             EditorGUI.indentLevel++;
@@ -36,7 +36,7 @@ namespace Klak.Spout
 
             for (var i = 0; i < count; i++)
             {
-                var name = PluginEntry.GetSharedTextureNameString(i);
+                var name = PluginEntry.GetSharedObjectNameString(i);
                 if (name != null) EditorGUILayout.LabelField("- " + name);
             }
 

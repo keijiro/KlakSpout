@@ -53,14 +53,15 @@ namespace Klak.Spout
 
         #region Private variables
 
-        int _receiverID;
+        System.IntPtr _receiver;
         Material _fixupMaterial;
         MaterialPropertyBlock _propertyBlock;
 
-        void SearchTexture()
+        // Search the texture list and create a receiver when found one.
+        void SearchAndCreateTexture()
         {
-            var name = PluginEntry.SearchSharedTextureNameString(_nameFilter);
-            if (name != null) _receiverID = PluginEntry.CreateReceiver(name);
+            var name = PluginEntry.SearchSharedObjectNameString(_nameFilter);
+            if (name != null) _receiver = PluginEntry.CreateReceiver(name);
         }
 
         #endregion
@@ -73,56 +74,84 @@ namespace Klak.Spout
             _propertyBlock = new MaterialPropertyBlock();
 
             // Initial search.
-            SearchTexture();
+            SearchAndCreateTexture();
         }
 
         void OnDestroy()
         {
-            if (_receiverID != 0) PluginEntry.Destroy(_receiverID);
-            if (_sharedTexture != null) Destroy(_sharedTexture);
-            if (_fixedTexture != null) Destroy(_fixedTexture);
+            if (_receiver != System.IntPtr.Zero)
+            {
+                PluginEntry.DestroySharedObject(_receiver);
+                _receiver = System.IntPtr.Zero;
+            }
+
+            if (_sharedTexture != null)
+            {
+                Destroy(_sharedTexture);
+                _sharedTexture = null;
+            }
+
+            if (_fixedTexture != null)
+            {
+                Destroy(_fixedTexture);
+                _fixedTexture = null;
+            }
         }
 
         void Update()
         {
             PluginEntry.Poll();
 
-            // Search the texture list if we haven't found one.
-            if (_receiverID == 0) SearchTexture();
-
-            // Try to initialize the shared texture if not yet initialized.
-            if (_receiverID != 0 && _sharedTexture == null)
+            if (_receiver == System.IntPtr.Zero)
             {
-                var ptr = PluginEntry.GetTexturePtr(_receiverID);
-                if (ptr != System.IntPtr.Zero)
+                // The receiver hasn't been set up yet; try to get one.
+                SearchAndCreateTexture();
+            }
+            else
+            {
+                // We've received textures via this receiver
+                // but now it's disconnected from the sender -> Destroy it.
+                if (PluginEntry.GetTexturePointer(_receiver) != System.IntPtr.Zero &&
+                    PluginEntry.DetectDisconnection(_receiver))
                 {
-                    _sharedTexture = Texture2D.CreateExternalTexture(
-                        PluginEntry.GetTextureWidth(_receiverID),
-                        PluginEntry.GetTextureHeight(_receiverID),
-                        TextureFormat.ARGB32, false, false, ptr
-                    );
+                    OnDestroy();
                 }
             }
 
-            // Update external objects.
-            if (_sharedTexture != null)
+            if (_receiver != System.IntPtr.Zero)
             {
-                if (_targetTexture != null)
+                if (_sharedTexture == null)
                 {
-                    Graphics.Blit(_sharedTexture, _targetTexture, _fixupMaterial, 1);
+                    // Try to initialize the shared texture.
+                    var ptr = PluginEntry.GetTexturePointer(_receiver);
+                    if (ptr != System.IntPtr.Zero)
+                    {
+                        _sharedTexture = Texture2D.CreateExternalTexture(
+                            PluginEntry.GetTextureWidth(_receiver),
+                            PluginEntry.GetTextureHeight(_receiver),
+                            TextureFormat.ARGB32, false, false, ptr
+                        );
+                    }
                 }
                 else
                 {
-                    if (_fixedTexture == null)
-                        _fixedTexture = new RenderTexture(
-                            _sharedTexture.width, _sharedTexture.height, 0);
-                    Graphics.Blit(_sharedTexture, _fixedTexture, _fixupMaterial, 1);
-                }
+                    // Update external objects.
+                    if (_targetTexture != null)
+                    {
+                        Graphics.Blit(_sharedTexture, _targetTexture, _fixupMaterial, 1);
+                    }
+                    else
+                    {
+                        if (_fixedTexture == null)
+                            _fixedTexture = new RenderTexture(_sharedTexture.width, _sharedTexture.height, 0);
+                        Graphics.Blit(_sharedTexture, _fixedTexture, _fixupMaterial, 1);
+                    }
 
-                if (_targetRenderer != null)
-                {
-                    _propertyBlock.SetTexture(_targetMaterialProperty, receivedTexture);
-                    _targetRenderer.SetPropertyBlock(_propertyBlock);
+                    if (_targetRenderer != null)
+                    {
+                        _propertyBlock.SetTexture(_targetMaterialProperty, receivedTexture);
+                        _targetRenderer.SetPropertyBlock(_propertyBlock);
+                    }
                 }
             }
         }

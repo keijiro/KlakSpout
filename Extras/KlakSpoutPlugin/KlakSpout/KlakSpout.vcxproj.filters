@@ -122,7 +122,7 @@
     <ClInclude Include="KlakSpoutGlobals.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="KlakSpoutSharedResource.h">
+    <ClInclude Include="KlakSpoutSharedObject.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

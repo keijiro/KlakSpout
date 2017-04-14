@@ -89,6 +89,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -99,6 +100,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -147,7 +149,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="KlakSpoutGlobals.h" />
-    <ClInclude Include="KlakSpoutSharedResource.h" />
+    <ClInclude Include="KlakSpoutSharedObject.h" />
     <ClInclude Include="Spout\Spout.h" />
     <ClInclude Include="Spout\SpoutCommon.h" />
     <ClInclude Include="Spout\SpoutCopy.h" />

@@ -13,6 +13,9 @@
 
 namespace klakspout
 {
+    //
+    // A class for holding global variables
+    //
     class Globals
     {
     public:
