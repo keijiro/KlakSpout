@@ -71,7 +71,7 @@ namespace Klak.Spout
                     _sharedTexture = Texture2D.CreateExternalTexture(
                         PluginEntry.GetTextureWidth(_sender),
                         PluginEntry.GetTextureHeight(_sender),
-                        TextureFormat.ARGB32, false, false, ptr
+                        TextureFormat.BGRA32, false, false, ptr     // modified from ARGB32 to allow D3D9 support
                     );
                 }
             }
@@ -87,7 +87,7 @@ namespace Klak.Spout
                 _fixupMaterial.SetFloat("_ClearAlpha", _clearAlpha ? 1 : 0);
 
                 // Apply the fix-up shader.
-                var tempRT = RenderTexture.GetTemporary(_sharedTexture.width, _sharedTexture.height);
+                var tempRT = RenderTexture.GetTemporary(_sharedTexture.width, _sharedTexture.height, 0, RenderTextureFormat.BGRA32);    // modified from ARGB32 to allow D3D9 support
                 Graphics.Blit(source, tempRT, _fixupMaterial, 0);
 
                 // Copy the result to the shared texture.
