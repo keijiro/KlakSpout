@@ -1,6 +1,8 @@
 KlakSpout
 =========
 
+Fork reason: Update sender to support also Direct3D9 Receivers.
+
 ![gif](http://i.imgur.com/LxjjcrY.gif)
 
 **KlakSpout** is a Unity plugin that allows sharing rendered frames with other
