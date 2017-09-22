@@ -88,7 +88,10 @@ namespace klakspout
 
             // The texture format is fixed to RGBA32.
             // TODO: we should support other formats.
-            format_ = DXGI_FORMAT_R8G8B8A8_UNORM;
+            
+			//format_ = DXGI_FORMAT_R8G8B8A8_UNORM;	// this will only support D3D11
+			
+			format_ = DXGI_FORMAT_B8G8R8A8_UNORM;	// this will support both D3D11 and D3D9, Unity sender script must use BGRA32 textures
 
             // Create a shared texture.
             ID3D11Texture2D* texture;

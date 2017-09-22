@@ -1,6 +1,11 @@
 KlakSpout
 =========
 
+Fork reason: Update sender to support also Direct3D9 Receivers.
+This allows software like [FaçadeSignage] to easily receive frames from Unity.
+
+[FaçadeSignage]: https://www.videomappingsoftware.com/
+
 ![gif](http://i.imgur.com/LxjjcrY.gif)
 
 **KlakSpout** is a Unity plugin that allows sharing rendered frames with other
