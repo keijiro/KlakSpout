@@ -1,0 +1,8 @@
+{
+    "name": "jp.keijiro.klakspout",
+    "displayName": "KlakSpout",
+    "version": "0.0.1",
+    "unity": "2018.1",
+    "description": "KlakSpout is a Unity plugin that allows sharing rendered frames with other applications with using the Spout protocol.",
+    "dependencies": { }
+}
