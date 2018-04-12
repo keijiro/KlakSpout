@@ -8,76 +8,59 @@ namespace Klak.Spout
     [AddComponentMenu("Klak/Spout/Spout Sender")]
     [RequireComponent(typeof(Camera))]
     [ExecuteInEditMode]
-    public class SpoutSender : MonoBehaviour
-    {
-        #region Editable properties
+    public class SpoutSender : MonoBehaviour {
 
         [SerializeField] bool _clearAlpha = true;
+        [SerializeField] protected SpoutSenderTexture.Data data;
+
+        [SerializeField] BoolEvent EnabledOnEnable;
+        [SerializeField] BoolEvent EnabledOnDisable;
+        [SerializeField] RenderTextureEvent EventOnUpdateTexture;
+
+        protected Camera targetCam;
+        protected RenderTexture pushedTargetTexture;
+        protected RenderTexture captureTargetTexture;
+
+        protected SpoutSenderTexture senderTexture;
+        protected Material _fixupMaterial;
 
         public bool clearAlpha {
             get { return _clearAlpha; }
             set { _clearAlpha = value; }
         }
 
-        #endregion
-
-        #region Private members
-
-        System.IntPtr _sender;
-        Texture2D _sharedTexture;
-        Material _fixupMaterial;
-
-        #endregion
+        public SpoutSenderTexture.Data Data { get { return data; } set { data = value; } }
 
         #region MonoBehaviour functions
-
         void OnEnable()
         {
-            var camera = GetComponent<Camera>();
-            _sender = PluginEntry.CreateSender(name, camera.pixelWidth, camera.pixelHeight);
+            targetCam = GetComponent<Camera>();
+            senderTexture = new SpoutSenderTexture();
+            EnabledOnEnable.Invoke(enabled);
+            EnabledOnDisable.Invoke(!enabled);
         }
-
         void OnDisable()
         {
-            if (_sender != System.IntPtr.Zero)
-            {
-                PluginEntry.DestroySharedObject(_sender);
-                _sender = System.IntPtr.Zero;
+            if (senderTexture != null) {
+                SetTargetTexture(null);
+                senderTexture.Dispose();
+                senderTexture = null;
             }
-
-            if (_sharedTexture != null)
-            {
-                if (Application.isPlaying)
-                    Destroy(_sharedTexture);
-                else
-                    DestroyImmediate(_sharedTexture);
-                _sharedTexture = null;
-            }
+            EnabledOnEnable.Invoke(enabled);
+            EnabledOnDisable.Invoke(!enabled);
         }
 
         void Update()
         {
+            senderTexture.Prepare(data);
+            SetTargetTexture(senderTexture.GetTemporary());
             PluginEntry.Poll();
         }
-
+        
         void OnRenderImage(RenderTexture source, RenderTexture destination)
         {
-            // Lazy initialization for the shared texture.
-            if (_sharedTexture == null)
-            {
-                var ptr = PluginEntry.GetTexturePointer(_sender);
-                if (ptr != System.IntPtr.Zero)
-                {
-                    _sharedTexture = Texture2D.CreateExternalTexture(
-                        PluginEntry.GetTextureWidth(_sender),
-                        PluginEntry.GetTextureHeight(_sender),
-                        TextureFormat.ARGB32, false, false, ptr
-                    );
-                }
-            }
-
-            // Update the shared texture.
-            if (_sharedTexture != null)
+            var sharedTexture = senderTexture.SharedTexture();
+            if (sharedTexture != null)
             {
                 // Lazy initialization for the fix-up shader.
                 if (_fixupMaterial == null)
@@ -87,20 +70,28 @@ namespace Klak.Spout
                 _fixupMaterial.SetFloat("_ClearAlpha", _clearAlpha ? 1 : 0);
 
                 // Apply the fix-up shader.
-                var tempRT = RenderTexture.GetTemporary(_sharedTexture.width, _sharedTexture.height);
+                var tempRT = RenderTexture.GetTemporary(sharedTexture.width, sharedTexture.height);
                 Graphics.Blit(source, tempRT, _fixupMaterial, 0);
 
                 // Copy the result to the shared texture.
-                Graphics.CopyTexture(tempRT, _sharedTexture);
+                Graphics.CopyTexture(tempRT, sharedTexture);
 
                 // Release temporaries.
                 RenderTexture.ReleaseTemporary(tempRT);
             }
 
-            // Just transfer the source to the destination.
-            Graphics.Blit(source, destination);
         }
 
         #endregion
+
+        protected void SetTargetTexture(RenderTexture tex) {
+            targetCam.targetTexture = tex;
+            EventOnUpdateTexture.Invoke(tex);
+        }
+
+        [System.Serializable]
+        public class BoolEvent : UnityEngine.Events.UnityEvent<bool> { }
+        [System.Serializable]
+        public class RenderTextureEvent : UnityEngine.Events.UnityEvent<RenderTexture> { }
     }
 }
