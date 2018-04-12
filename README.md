@@ -3,6 +3,7 @@
 - Spout's sender texture doesn't depend on Camera (Screen) resolution
 - Resizable texture size
 - UnityEvent-based
+- Support multiple cameras
 
 ## Usage
 ### Import this as submodule in your project:
