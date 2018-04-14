@@ -9,7 +9,6 @@ namespace Klak.Spout {
 
         protected System.IntPtr _sender = System.IntPtr.Zero;
         protected Texture2D _sharedTexture = null;
-        protected RenderTexture temporaryTexture = null;
 
         public SpoutSenderTexture() {
             Invalidate();
@@ -19,7 +18,6 @@ namespace Klak.Spout {
         public virtual void Dispose() {
             ClearSender();
             ClearSharedTexture();
-			ClearTemporaryTexture();
 		}
         #endregion
         
@@ -37,21 +35,12 @@ namespace Klak.Spout {
             if (!currValidity || !curr.Equals(next)) {
                 ClearSender();
                 ClearSharedTexture();
-                ClearTemporaryTexture();
                 Invalidate();
                 if (InputValidity(next) && TryBuildSender(next, out _sender)) {
                     currValidity = true;
                     curr = next.Clone();
                 }
             }
-        }
-        public virtual RenderTexture GetTemporary() {
-            if (currValidity && temporaryTexture == null) {
-                temporaryTexture = RenderTexture.GetTemporary(curr.width, curr.height);
-				temporaryTexture.antiAliasing = QualitySettings.antiAliasing;
-				temporaryTexture.useMipMap = false;
-            }
-            return temporaryTexture;
         }
         public virtual Texture2D SharedTexture() {
             if (currValidity && _sharedTexture == null)
@@ -76,12 +65,6 @@ namespace Klak.Spout {
                 TextureFormat.ARGB32, false, false, ptr);
             Debug.LogFormat("Build Texture ({0}x{1})", width, height);
             return true;
-        }
-        protected virtual void ClearTemporaryTexture() {
-            if(temporaryTexture != null) {
-                RenderTexture.ReleaseTemporary(temporaryTexture);
-                temporaryTexture = null;
-            }
         }
         protected virtual void ClearSharedTexture() {
             if (_sharedTexture != null) {
@@ -109,7 +92,6 @@ namespace Klak.Spout {
             public string name;
             public int width;
             public int height;
-            
 
             public override bool Equals(object obj) {
                 var b = (Data)obj;
@@ -132,6 +114,9 @@ namespace Klak.Spout {
             public Data Clone() {
                 return new Data() { name = this.name, width = this.width, height = this.height };
             }
+			public Vector2Int Size {
+				get { return new Vector2Int(width, height); }
+			}
         }
         #endregion
     }

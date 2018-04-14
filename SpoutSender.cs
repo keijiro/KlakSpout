@@ -1,4 +1,4 @@
-﻿// KlakSpout - Spout realtime video sharing plugin for Unity
+// KlakSpout - Spout realtime video sharing plugin for Unity
 // https://github.com/keijiro/KlakSpout
 using UnityEngine;
 
@@ -18,10 +18,9 @@ namespace Klak.Spout
         [SerializeField] RenderTextureEvent EventOnUpdateTexture;
 
         protected Camera targetCam;
-        protected RenderTexture pushedTargetTexture;
-        protected RenderTexture captureTargetTexture;
 
         protected SpoutSenderTexture senderTexture;
+		protected ResizableRenderTexture temporaryTexture;
         protected Material _fixupMaterial;
 
         public bool clearAlpha {
@@ -36,16 +35,24 @@ namespace Klak.Spout
         {
             targetCam = GetComponent<Camera>();
             senderTexture = new SpoutSenderTexture();
+			temporaryTexture = new ResizableRenderTexture(
+				readWrite: RenderTextureReadWrite.sRGB,
+				antiAliasing: QualitySettings.antiAliasing);
+
             EnabledOnEnable.Invoke(enabled);
             EnabledOnDisable.Invoke(!enabled);
         }
         void OnDisable()
         {
             if (senderTexture != null) {
-                SetTargetTexture(null);
                 senderTexture.Dispose();
                 senderTexture = null;
             }
+			if (temporaryTexture != null) {
+				SetTargetTexture(null);
+				temporaryTexture.Dispose();
+				temporaryTexture = null;
+			}
             EnabledOnEnable.Invoke(enabled);
             EnabledOnDisable.Invoke(!enabled);
         }
@@ -53,7 +60,8 @@ namespace Klak.Spout
         void Update()
         {
             senderTexture.Prepare(data);
-            SetTargetTexture(senderTexture.GetTemporary());
+			temporaryTexture.Size = data.Size;
+            SetTargetTexture(temporaryTexture.Texture);
             PluginEntry.Poll();
         }
         
@@ -84,12 +92,12 @@ namespace Klak.Spout
 
         #endregion
 
-        protected void SetTargetTexture(RenderTexture tex) {
+        protected virtual void SetTargetTexture(RenderTexture tex) {
             targetCam.targetTexture = tex;
             EventOnUpdateTexture.Invoke(tex);
-        }
+		}
 
-        [System.Serializable]
+		[System.Serializable]
         public class BoolEvent : UnityEngine.Events.UnityEvent<bool> { }
         [System.Serializable]
         public class RenderTextureEvent : UnityEngine.Events.UnityEvent<RenderTexture> { }
