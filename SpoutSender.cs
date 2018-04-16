@@ -17,10 +17,10 @@ namespace Klak.Spout
         [SerializeField] BoolEvent EnabledOnDisable;
         [SerializeField] RenderTextureEvent EventOnUpdateTexture;
 
-        protected Camera targetCam;
+		protected Camera targetCam;
 
-        protected SpoutSenderTexture senderTexture;
 		protected ResizableRenderTexture temporaryTexture;
+		protected SpoutSenderTexture senderTexture;
         protected Material _fixupMaterial;
 
         public bool clearAlpha {
@@ -35,6 +35,7 @@ namespace Klak.Spout
         {
             targetCam = GetComponent<Camera>();
             senderTexture = new SpoutSenderTexture();
+
 			temporaryTexture = new ResizableRenderTexture(
 				readWrite: RenderTextureReadWrite.sRGB,
 				antiAliasing: QualitySettings.antiAliasing);

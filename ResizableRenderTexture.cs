@@ -2,36 +2,39 @@ using UnityEngine;
 
 namespace Klak.Spout {
 
+	[System.Serializable]
     public class ResizableRenderTexture : System.IDisposable {
         public const int DEFAULT_ANTIALIASING = 1;
 
         public event System.Action<RenderTexture> AfterCreateTexture;
         public event System.Action<RenderTexture> BeforeDestroyTexture;
 
+		[SerializeField]
+		protected Vector2Int size;
+		[SerializeField]
+		protected Format format;
+
 		protected bool valid = false;
 		protected RenderTexture tex;
 
-		protected RenderTextureReadWrite readWrite;
-		protected RenderTextureFormat format;
-		protected TextureWrapMode wrapMode;
-		protected FilterMode filterMode;
-		protected int antiAliasing;
-		protected Vector2Int size;
-		protected int depth;
-
-		public ResizableRenderTexture(int depth = 24,
-			RenderTextureFormat format = RenderTextureFormat.ARGB32,
-			RenderTextureReadWrite readWrite = RenderTextureReadWrite.Default,
-			int antiAliasing = 0,
-			FilterMode filterMode = FilterMode.Bilinear,
-			TextureWrapMode wrapMode = TextureWrapMode.Clamp) {
-			this.depth = depth;
+		public ResizableRenderTexture(Format format) {
 			this.format = format;
-			this.readWrite = readWrite;
-			this.antiAliasing = ParseAntiAliasing(antiAliasing);
-			this.filterMode = FilterMode;
-			this.wrapMode = wrapMode;
 		}
+		public ResizableRenderTexture(
+			RenderTextureReadWrite readWrite = RenderTextureReadWrite.sRGB,
+			RenderTextureFormat textureFormat = RenderTextureFormat.ARGB32,
+			TextureWrapMode wrapMode = TextureWrapMode.Clamp,
+			FilterMode filterMode = FilterMode.Bilinear,
+			int antiAliasing = -1,
+			int depth = 24
+		) : this(new Format() {
+			readWrite = readWrite,
+			textureFormat = textureFormat,
+			wrapMode = wrapMode,
+			filterMode = filterMode,
+			antiAliasing = antiAliasing,
+			depth = depth
+		}) { }
 
 		#region IDisposable implementation
 		public void Dispose() {
@@ -56,20 +59,38 @@ namespace Klak.Spout {
 			}
 		}
         public FilterMode FilterMode {
-			get { return filterMode; }
+			get { return format.filterMode; }
 			set {
-				if (filterMode != value) {
+				if (format.filterMode != value) {
 					Invalidate();
-					filterMode = value;
+					format.filterMode = value;
 				}
 			}
 		}
         public TextureWrapMode WrapMode {
-			get { return wrapMode; }
+			get { return format.wrapMode; }
 			set {
-				if (wrapMode != value) {
+				if (format.wrapMode != value) {
 					Invalidate();
-					wrapMode = value;
+					format.wrapMode = value;
+				}
+			}
+		}
+		public RenderTextureReadWrite ReadWrite {
+			get { return format.readWrite; }
+			set {
+				if (format.readWrite != value) {
+					Invalidate();
+					format.readWrite = value;
+				}
+			}
+		}
+		public int AntiAliasing {
+			get { return format.antiAliasing; }
+			set {
+				if (format.antiAliasing != value) {
+					Invalidate();
+					format.antiAliasing = value;
 				}
 			}
 		}
@@ -80,6 +101,9 @@ namespace Klak.Spout {
             GL.Clear (clearDepth, clearColor, color);
             RenderTexture.active = active;
         }
+		public void Release() {
+			ReleaseTexture();
+		}
 		#endregion
 
 		#region private
@@ -91,11 +115,15 @@ namespace Klak.Spout {
 				return;
 			}
 
-            tex = new RenderTexture (width, height, depth, format, readWrite);
+            tex = new RenderTexture (width, height, format.depth, format.textureFormat, format.readWrite);
             tex.filterMode = FilterMode;
             tex.wrapMode = WrapMode;
-            tex.antiAliasing = antiAliasing;
-			Debug.LogFormat("ResizableRenderTexture.Create size={0}x{1}", width, height);
+            tex.antiAliasing = ParseAntiAliasing(format.antiAliasing);
+			Debug.LogFormat("Create ResizableRenderTexture : {0}\n{1}",
+				string.Format("size={0}x{1}", tex.width, tex.height),
+				string.Format("depth={0} format={1} readWrite={2} filter={3} wrap={4} antiAliasing={5}",
+				tex.depth, tex.format, (tex.sRGB ? "sRGB" : "Linear"),
+				tex.filterMode, tex.wrapMode, tex.antiAliasing));
             NotifyAfterCreateTexture ();
         }
         protected void NotifyAfterCreateTexture() {
@@ -135,5 +163,30 @@ namespace Klak.Spout {
 		public static int ParseAntiAliasing(int antiAliasing) {
 			return (antiAliasing > 0 ? antiAliasing : QualitySettings.antiAliasing);
 		}
+
+		#region classes
+		[System.Serializable]
+		public class Format {
+			public RenderTextureReadWrite readWrite;
+			public RenderTextureFormat textureFormat;
+			public TextureWrapMode wrapMode;
+			public FilterMode filterMode;
+			public int antiAliasing;
+			public int depth;
+
+			public Format() {
+				Reset();
+			}
+
+			public void Reset() {
+				depth = 24;
+				antiAliasing = 0;
+				filterMode = FilterMode.Bilinear;
+				wrapMode = TextureWrapMode.Clamp;
+				textureFormat = RenderTextureFormat.ARGB32;
+				readWrite = RenderTextureReadWrite.Default;
+			}
+		}
+		#endregion
 	}
 }
