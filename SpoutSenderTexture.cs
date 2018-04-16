@@ -63,7 +63,7 @@ namespace Klak.Spout {
             var height = PluginEntry.GetTextureHeight(sender);
             sharedTexture = Texture2D.CreateExternalTexture(width, height, 
                 TextureFormat.ARGB32, false, false, ptr);
-            Debug.LogFormat("Build Texture ({0}x{1})", width, height);
+            Debug.LogFormat("Build Shared Texture ({0}x{1})", width, height);
             return true;
         }
         protected virtual void ClearSharedTexture() {
