@@ -1,5 +1,6 @@
 // KlakSpout - Spout realtime video sharing plugin for Unity
 // https://github.com/keijiro/KlakSpout
+using nobnak.Gist.Resizable;
 using UnityEngine;
 
 namespace Klak.Spout
@@ -36,9 +37,10 @@ namespace Klak.Spout
             targetCam = GetComponent<Camera>();
             senderTexture = new SpoutSenderTexture();
 
-			temporaryTexture = new ResizableRenderTexture(
-				readWrite: RenderTextureReadWrite.sRGB,
-				antiAliasing: QualitySettings.antiAliasing);
+			temporaryTexture = new ResizableRenderTexture(new Format() {
+				readWrite = RenderTextureReadWrite.sRGB,
+				antiAliasing = QualitySettings.antiAliasing
+			});
 
             EnabledOnEnable.Invoke(enabled);
             EnabledOnDisable.Invoke(!enabled);
