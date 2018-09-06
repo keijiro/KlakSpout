@@ -126,4 +126,9 @@
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="KlakSpout.def">
+      <Filter>Source Files</Filter>
+    </None>
+  </ItemGroup>
 </Project>

@@ -104,6 +104,11 @@
 //		15.01.17	- Add GetShareMode, SetShareMode
 //		18.01.17	- GetImageSize redundant for 2.006
 //		22.01.17	- include zero char in SelectSenderPanel NULL arg checks
+//		25.05.17	- corrected SendImage UpdateSender to use passed width and height
+//		31.10.17	- CreateReceiver update
+//					  https://github.com/leadedge/Spout2/issues/24
+//					  temporary changes to allow selection of a sender 
+//					  when a name is provided for CreateReceiver
 //
 // ================================================================
 /*
@@ -345,7 +350,7 @@ bool Spout::SendImage(const unsigned char* pixels,
 
 	// width, g_Width should all be the same
 	if(width != g_Width || height != g_Height)
-		UpdateSender(g_SharedMemoryName, g_Width, g_Height);
+		return(UpdateSender(g_SharedMemoryName, width, height));
 
 	// Only RGBA, BGRA, RGB, BGR supported
 	if(!(glformat == GL_RGBA || glFormat == 0x80E1 || glformat == GL_RGB || glFormat == 0x80E0))
@@ -1036,6 +1041,8 @@ bool Spout::OpenReceiver (char* theName, unsigned int& theWidth, unsigned int& t
 			width    = g_Width;
 			height   = g_Height;
 			dwFormat = g_Format;
+			// 31.10.17
+			sharehandle = g_ShareHandle;
 		}
 		else {
 		    return false;
@@ -1473,6 +1480,8 @@ bool Spout::CheckSpoutPanel()
 							g_Width  = (unsigned int)TextureInfo.width;
 							g_Height = (unsigned int)TextureInfo.height;
 							g_Format = TextureInfo.format;
+							// 31.10.17
+							g_ShareHandle = (HANDLE)UIntToPtr(TextureInfo.shareHandle);
 							// 24.11.15 - not needed if the sender exists - and it is already checked as active
 							// Register in the list of senders and make it the active sender
 							// interop.senders.RegisterSenderName(newname);
@@ -1488,6 +1497,8 @@ bool Spout::CheckSpoutPanel()
 								g_Width  = (unsigned int)TextureInfo.width;
 								g_Height = (unsigned int)TextureInfo.height;
 								g_Format = TextureInfo.format;
+								// 31.10.17
+								g_ShareHandle = (HANDLE)UIntToPtr(TextureInfo.shareHandle);
 								bRet = true; // will pass on next call to receivetexture
 							}
 						} // no active sender

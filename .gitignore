@@ -11,10 +11,13 @@ Desktop.ini
 *.csproj
 *.sln
 *.swp
+*.vcxproj.user
 
 # Unity
 /Library
 /Temp
 
-Assets/Plugins
-Assets/Plugins.meta
+# Visual Studio
+/Extras/**/.vs
+/Extras/**/x64
+/Extras/**/Win32

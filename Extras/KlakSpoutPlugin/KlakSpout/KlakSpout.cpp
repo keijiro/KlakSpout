@@ -88,7 +88,7 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginUnload()
     unity_->Get<IUnityGraphics>()->UnregisterDeviceEventCallback(OnGraphicsDeviceEvent);
 }
 
-extern "C" UnityRenderingEvent UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API GetRenderEventFunc()
+extern "C" UnityRenderingEvent UNITY_INTERFACE_EXPORT GetRenderEventFunc()
 {
     return OnRenderEvent;
 }

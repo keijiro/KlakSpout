@@ -1,0 +1,4 @@
+LIBRARY KlakSpout
+EXPORTS
+  UnityPluginLoad
+  UnityPluginUnload
