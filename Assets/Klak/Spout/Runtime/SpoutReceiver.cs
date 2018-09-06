@@ -1,14 +1,16 @@
 // KlakSpout - Spout realtime video sharing plugin for Unity
 // https://github.com/keijiro/KlakSpout
+
 using UnityEngine;
 
 namespace Klak.Spout
 {
-    /// Spout receiver class
+    // Spout receiver class
+    [ExecuteInEditMode]
     [AddComponentMenu("Klak/Spout/Spout Receiver")]
-    public class SpoutReceiver : MonoBehaviour
+    public sealed class SpoutReceiver : MonoBehaviour
     {
-        #region Editable properties
+        #region Source settings
 
         [SerializeField] string _nameFilter;
 
@@ -16,6 +18,10 @@ namespace Klak.Spout
             get { return _nameFilter; }
             set { _nameFilter = value; }
         }
+
+        #endregion
+
+        #region Target settings
 
         [SerializeField] RenderTexture _targetTexture;
 
@@ -40,119 +46,118 @@ namespace Klak.Spout
 
         #endregion
 
-        #region Public property
+        #region Public properties
 
-        Texture2D _sharedTexture;
-        RenderTexture _fixedTexture;
+        RenderTexture _receivedTexture;
 
         public Texture receivedTexture {
-            get { return _targetTexture != null ? _targetTexture : _fixedTexture; }
+            get { return _targetTexture != null ? _targetTexture : _receivedTexture; }
         }
 
         #endregion
 
-        #region Private variables
+        #region Private members
 
-        System.IntPtr _receiver;
-        Material _fixupMaterial;
+        System.IntPtr _plugin;
+        Texture2D _sharedTexture;
+        Material _blitMaterial;
         MaterialPropertyBlock _propertyBlock;
-
-        // Search the texture list and create a receiver when found one.
-        void SearchAndCreateTexture()
-        {
-            var name = PluginEntry.SearchSharedObjectNameString(_nameFilter);
-            if (name != null) _receiver = PluginEntry.CreateReceiver(name);
-        }
 
         #endregion
 
         #region MonoBehaviour functions
 
-        void Start()
+        void OnDisable()
         {
-            _fixupMaterial = new Material(Shader.Find("Hidden/Spout/Fixup"));
-            _propertyBlock = new MaterialPropertyBlock();
+            if (_plugin != System.IntPtr.Zero)
+            {
+                PluginEntry.DestroySharedObject(_plugin);
+                _plugin = System.IntPtr.Zero;
+            }
 
-            // Initial search.
-            SearchAndCreateTexture();
+            Util.Destroy(_sharedTexture);
         }
 
         void OnDestroy()
         {
-            if (_receiver != System.IntPtr.Zero)
-            {
-                PluginEntry.DestroySharedObject(_receiver);
-                _receiver = System.IntPtr.Zero;
-            }
-
-            if (_sharedTexture != null)
-            {
-                Destroy(_sharedTexture);
-                _sharedTexture = null;
-            }
-
-            if (_fixedTexture != null)
-            {
-                Destroy(_fixedTexture);
-                _fixedTexture = null;
-            }
+            Util.Destroy(_blitMaterial);
+            Util.Destroy(_receivedTexture);
         }
 
         void Update()
         {
             PluginEntry.Poll();
 
-            if (_receiver == System.IntPtr.Zero)
+            // Plugin initialization/termination
+            if (_plugin == System.IntPtr.Zero)
             {
-                // The receiver hasn't been set up yet; try to get one.
-                SearchAndCreateTexture();
+                // No plugin instance exists: Search the spout sender list with
+                // the name filter and connect to found one (if any).
+                var name = PluginEntry.SearchSharedObjectNameString(_nameFilter);
+                if (name != null) _plugin = PluginEntry.CreateReceiver(name);
             }
             else
             {
-                // We've received textures via this receiver
-                // but now it's disconnected from the sender -> Destroy it.
-                if (PluginEntry.GetTexturePointer(_receiver) != System.IntPtr.Zero &&
-                    PluginEntry.DetectDisconnection(_receiver))
+                // A plugin instance exists: Check if the connection is still
+                // alive. Destroy it when disconnected.
+                if (PluginEntry.DetectDisconnection(_plugin)) OnDisable();
+            }
+
+            // Shared texture lazy initialization
+            if (_plugin != System.IntPtr.Zero && _sharedTexture == null)
+            {
+                var ptr = PluginEntry.GetTexturePointer(_plugin);
+                if (ptr != System.IntPtr.Zero)
                 {
-                    OnDestroy();
+                    _sharedTexture = Texture2D.CreateExternalTexture(
+                        PluginEntry.GetTextureWidth(_plugin),
+                        PluginEntry.GetTextureHeight(_plugin),
+                        TextureFormat.ARGB32, false, false, ptr
+                    );
+
+                    // The previously allocated buffer should be disposed to
+                    // refresh it. This is needed to follow changes in the
+                    // dimensions of the shared texture.
+                    if (_receivedTexture == null) Util.Destroy(_receivedTexture);
                 }
             }
 
-            if (_receiver != System.IntPtr.Zero)
+            // Blit the shared texture to the destination.
+            if (_sharedTexture != null)
             {
-                if (_sharedTexture == null)
+                // Blit shader lazy initialization
+                if (_blitMaterial == null)
                 {
-                    // Try to initialize the shared texture.
-                    var ptr = PluginEntry.GetTexturePointer(_receiver);
-                    if (ptr != System.IntPtr.Zero)
-                    {
-                        _sharedTexture = Texture2D.CreateExternalTexture(
-                            PluginEntry.GetTextureWidth(_receiver),
-                            PluginEntry.GetTextureHeight(_receiver),
-                            TextureFormat.ARGB32, false, false, ptr
-                        );
-                    }
+                    _blitMaterial = new Material(Shader.Find("Hidden/Spout/Blit"));
+                    _blitMaterial.hideFlags = HideFlags.DontSave;
+                }
+
+                if (_targetTexture != null)
+                {
+                    // Blit to the target texture.
+                    Graphics.Blit(_sharedTexture, _targetTexture, _blitMaterial, 1);
                 }
                 else
                 {
-                    // Update external objects.
-                    if (_targetTexture != null)
+                    // Receive buffer lazy initialization
+                    if (_receivedTexture == null)
                     {
-                        Graphics.Blit(_sharedTexture, _targetTexture, _fixupMaterial, 1);
-                    }
-                    else
-                    {
-                        if (_fixedTexture == null)
-                            _fixedTexture = new RenderTexture(_sharedTexture.width, _sharedTexture.height, 0);
-                        Graphics.Blit(_sharedTexture, _fixedTexture, _fixupMaterial, 1);
+                        _receivedTexture = new RenderTexture(_sharedTexture.width, _sharedTexture.height, 0);
+                        _receivedTexture.hideFlags = HideFlags.DontSave;
                     }
 
-                    if (_targetRenderer != null)
-                    {
-                        _propertyBlock.SetTexture(_targetMaterialProperty, receivedTexture);
-                        _targetRenderer.SetPropertyBlock(_propertyBlock);
-                    }
+                    // Blit to the receive buffer.
+                    Graphics.Blit(_sharedTexture, _receivedTexture, _blitMaterial, 1);
                 }
+            }
+
+            // Target renderer override
+            if (_targetRenderer != null)
+            {
+                if (_propertyBlock == null) _propertyBlock = new MaterialPropertyBlock();
+                _targetRenderer.GetPropertyBlock(_propertyBlock);
+                _propertyBlock.SetTexture(_targetMaterialProperty, receivedTexture);
+                _targetRenderer.SetPropertyBlock(_propertyBlock);
             }
         }
 

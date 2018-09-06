@@ -1,5 +1,6 @@
 // KlakSpout - Spout realtime video sharing plugin for Unity
 // https://github.com/keijiro/KlakSpout
+
 using UnityEngine;
 using System.Runtime.InteropServices;
 

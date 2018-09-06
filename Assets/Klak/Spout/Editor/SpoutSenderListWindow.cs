@@ -1,12 +1,13 @@
 // KlakSpout - Spout realtime video sharing plugin for Unity
 // https://github.com/keijiro/KlakSpout
+
 using UnityEngine;
 using UnityEditor;
 
 namespace Klak.Spout
 {
     // Spout sender list window
-    public class SpoutSenderListWindow : EditorWindow
+    public sealed class SpoutSenderListWindow : EditorWindow
     {
         [MenuItem("Window/Klak/Spout Sender List")]
         static void Init()

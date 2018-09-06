@@ -1,5 +1,6 @@
 // KlakSpout - Spout realtime video sharing plugin for Unity
 // https://github.com/keijiro/KlakSpout
+
 using UnityEngine;
 using UnityEditor;
 using System;
@@ -9,7 +10,7 @@ namespace Klak.Spout
 {
     [CanEditMultipleObjects]
     [CustomEditor(typeof(SpoutReceiver))]
-    public class SpoutReceiverEditor : Editor
+    public sealed class SpoutReceiverEditor : Editor
     {
         SerializedProperty _nameFilter;
         SerializedProperty _targetTexture;
@@ -56,30 +57,32 @@ namespace Klak.Spout
         // Material property drop-down list.
         void ShowMaterialPropertyDropDown()
         {
-            // Try to retrieve the target shader.
+            // Try retrieving the target shader.
             var shader = RetrieveTargetShader(_targetRenderer.objectReferenceValue);
 
-            if (shader != null)
+            if (shader == null)
             {
-                // Cache the property list of the target shader.
-                CachePropertyList(shader);
-
-                // If there are suitable candidates...
-                if (_propertyList.Length > 0)
-                {
-                    // Show the drop-down list.
-                    var index = Array.IndexOf(_propertyList, _targetMaterialProperty.stringValue);
-                    var newIndex = EditorGUILayout.Popup("Property", index, _propertyList);
-
-                    // Update the property if the selection was changed.
-                    if (index != newIndex)
-                        _targetMaterialProperty.stringValue = _propertyList[newIndex];
-                }
-                else
-                    _targetMaterialProperty.stringValue = ""; // reset on failure
-            }
-            else
                 _targetMaterialProperty.stringValue = ""; // reset on failure
+                return;
+            }
+
+            // Cache the properties of the target shader.
+            CachePropertyList(shader);
+
+            // Check if there is suitable candidate.
+            if (_propertyList.Length == 0)
+            {
+                _targetMaterialProperty.stringValue = ""; // reset on failure
+                return;
+            }
+
+            // Show the drop-down list.
+            var index = Array.IndexOf(_propertyList, _targetMaterialProperty.stringValue);
+            var newIndex = EditorGUILayout.Popup("Property", index, _propertyList);
+
+            // Update the property if the selection was changed.
+            if (index != newIndex)
+                _targetMaterialProperty.stringValue = _propertyList[newIndex];
         }
 
         void OnEnable()
@@ -96,11 +99,26 @@ namespace Klak.Spout
             _cachedShader = null;
         }
 
+        public override bool RequiresConstantRepaint()
+        {
+            return true;
+        }
+
         public override void OnInspectorGUI()
         {
             serializedObject.Update();
 
-            EditorGUILayout.PropertyField(_nameFilter);
+            EditorGUI.BeginChangeCheck();
+            EditorGUILayout.DelayedTextField(_nameFilter);
+            if (EditorGUI.EndChangeCheck())
+            {
+                // Flip-flipping the target to reset the connection.
+                // It's needed to apply the new name filter value.
+                var recv = (SpoutReceiver)target;
+                recv.enabled = false;
+                recv.enabled = true;
+            }
+
             EditorGUILayout.PropertyField(_targetTexture);
             EditorGUILayout.PropertyField(_targetRenderer);
 
