@@ -16,7 +16,7 @@ incurring much overhead.
 System Requirements and Compatibilities
 ---------------------------------------
 
-- KlakSpout requires Unity 5.6.0 or later.
+- KlakSpout requires Unity 2017.4 or later.
 - KlakSpout only supports Direct3D 11 (DX11) graphics API mode. Other APIs
   (DX9, DX12, OpenGL core, etc.) are not supported at the moment.
 
