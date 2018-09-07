@@ -14,7 +14,7 @@ namespace Klak.Spout
 
         public static void Poll()
         {
-            if (Time.frameCount != _lastUpdateFrame)
+            if (Time.frameCount != _lastUpdateFrame || !Application.isPlaying)
             {
                 GL.IssuePluginEvent(GetRenderEventFunc(), 0);
                 _lastUpdateFrame = Time.frameCount;

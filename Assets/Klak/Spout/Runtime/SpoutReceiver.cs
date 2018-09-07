@@ -161,6 +161,25 @@ namespace Klak.Spout
             }
         }
 
+        #if UNITY_EDITOR
+
+        // In Editor, do Update on repaint. This is needed to update the shared
+        // texture without getting the object dirty.
+
+        void OnRenderObject()
+        {
+            if (!Application.isPlaying)
+            {
+                // We have to restore the current active RT after update for
+                // the scene view (Graphics.Blit is going to override it).
+                var activeRT = RenderTexture.active;
+                Update();
+                RenderTexture.active = activeRT;
+            }
+        }
+
+        #endif
+
         #endregion
     }
 }

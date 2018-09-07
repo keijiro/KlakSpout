@@ -21,6 +21,16 @@ namespace Klak.Spout
 
         string[] _propertyList; // cached property list
         Shader _cachedShader;   // shader used to cache the list
+        double _prevUpdateTime;
+
+        // Check if it should repaint the view now.
+        void CheckRepaint()
+        {
+            var time = EditorApplication.timeSinceStartup;
+            if (time - _prevUpdateTime < 0.1) return;
+            UnityEditorInternal.InternalEditorUtility.RepaintAllViews();
+            _prevUpdateTime = time;
+        }
 
         // Retrieve shader from a target renderer.
         Shader RetrieveTargetShader(UnityEngine.Object target)
@@ -91,17 +101,16 @@ namespace Klak.Spout
             _targetTexture = serializedObject.FindProperty("_targetTexture");
             _targetRenderer = serializedObject.FindProperty("_targetRenderer");
             _targetMaterialProperty = serializedObject.FindProperty("_targetMaterialProperty");
+
+           EditorApplication.update += CheckRepaint;
         }
 
         void OnDisable()
         {
             _propertyList = null;
             _cachedShader = null;
-        }
 
-        public override bool RequiresConstantRepaint()
-        {
-            return true;
+            EditorApplication.update -= CheckRepaint;
         }
 
         public override void OnInspectorGUI()
