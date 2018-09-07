@@ -8,7 +8,7 @@ namespace Klak.Spout
 {
     [CanEditMultipleObjects]
     [CustomEditor(typeof(SpoutSender))]
-    public sealed class SpoutSenderEditor : Editor
+    sealed class SpoutSenderEditor : Editor
     {
         SerializedProperty _sourceTexture;
         SerializedProperty _alphaSupport;
