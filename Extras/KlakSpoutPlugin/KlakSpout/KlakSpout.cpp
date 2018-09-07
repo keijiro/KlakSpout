@@ -5,6 +5,7 @@
 #include "Unity/IUnityGraphicsD3D11.h"
 #include <list>
 #include <memory>
+#include <mutex>
 
 namespace
 {
@@ -14,10 +15,12 @@ namespace
     // Shared object list
     typedef std::list<std::shared_ptr<klakspout::SharedObject>> SharedObjectList;
     SharedObjectList shared_objects_;
+    std::mutex shared_objects_lock_;
 
     // Remove a given object from the list.
     void remove_shared_object(klakspout::SharedObject* pobj)
     {
+        std::lock_guard<std::mutex> guard(shared_objects_lock_);
         shared_objects_.remove_if([pobj](auto & sp) { return sp.get() == pobj; });
     }
 
@@ -52,6 +55,7 @@ namespace
     void UNITY_INTERFACE_API OnRenderEvent(int event_id)
     {
         // Update all the D3D11 resources. This has to be done in the render thread.
+        std::lock_guard<std::mutex> guard(shared_objects_lock_);
         for (auto p : shared_objects_) p->updateResources();
     }
 }
@@ -99,13 +103,18 @@ extern "C" UnityRenderingEvent UNITY_INTERFACE_EXPORT GetRenderEventFunc()
 
 extern "C" void UNITY_INTERFACE_EXPORT * CreateSender(const char* name, int width, int height)
 {
+    std::lock_guard<std::mutex> guard(shared_objects_lock_);
     auto pobj = new klakspout::SharedObject(klakspout::SharedObject::kSender, name, width, height);
     shared_objects_.emplace_front(pobj);
     return pobj;
 }
 
-extern "C" void UNITY_INTERFACE_EXPORT * CreateReceiver(const char* name)
+extern "C" void UNITY_INTERFACE_EXPORT * TryCreateReceiver(const char* name)
 {
+    auto & g = klakspout::Globals::get();
+    if (!g.sender_names_->FindSenderName(name)) return nullptr;
+
+    std::lock_guard<std::mutex> guard(shared_objects_lock_);
     auto pobj = new klakspout::SharedObject(klakspout::SharedObject::kReceiver, name);
     shared_objects_.emplace_front(pobj);
     return pobj;
@@ -163,40 +172,5 @@ extern "C" const void UNITY_INTERFACE_EXPORT * GetSharedObjectName(int index)
         }
     }
 
-    return nullptr;
-}
-
-extern "C" const void UNITY_INTERFACE_EXPORT * SearchSharedObjectName(const char* keyword)
-{
-    auto & g = klakspout::Globals::get();
-
-    // Static string object used for storing a result.
-    static string temp;
-
-    // Retrieve all the sender names.
-    std::set<std::string> names;
-    g.sender_names_->GetSenderNames(&names);
-
-    // Do nothing if the name list is empty.
-    if (names.size() == 0) return nullptr;
-
-    // Return the first element if the keyword is empty.
-    if (keyword == nullptr || *keyword == 0)
-    {
-        temp = *names.begin();
-        return temp.c_str();
-    }
-
-    // Scan the name list.
-    for (auto & name : names)
-    {
-        if (name.find(keyword) != std::string::npos)
-        {
-            temp = name;
-            return temp.c_str();
-        }
-    }
-
-    // Nothing found.
     return nullptr;
 }

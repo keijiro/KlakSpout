@@ -32,7 +32,7 @@ namespace Klak.Spout
         public static extern System.IntPtr CreateSender(string name, int width, int height);
 
         [DllImport("KlakSpout")]
-        public static extern System.IntPtr CreateReceiver(string name);
+        public static extern System.IntPtr TryCreateReceiver(string name);
 
         [DllImport("KlakSpout")]
         public static extern void DestroySharedObject(System.IntPtr ptr);
@@ -58,15 +58,6 @@ namespace Klak.Spout
         public static string GetSharedObjectNameString(int index)
         {
             var ptr = GetSharedObjectName(index);
-            return ptr != System.IntPtr.Zero ? Marshal.PtrToStringAnsi(ptr) : null;
-        }
-
-        [DllImport("KlakSpout")]
-        public static extern System.IntPtr SearchSharedObjectName(string keyword);
-
-        public static string SearchSharedObjectNameString(string keyword)
-        {
-            var ptr = SearchSharedObjectName(keyword);
             return ptr != System.IntPtr.Zero ? Marshal.PtrToStringAnsi(ptr) : null;
         }
 

@@ -91,10 +91,9 @@ namespace Klak.Spout
             // Plugin initialization/termination
             if (_plugin == System.IntPtr.Zero)
             {
-                // No plugin instance exists: Search the spout sender list with
-                // the name filter and connect to found one (if any).
-                var name = PluginEntry.SearchSharedObjectNameString(_nameFilter);
-                if (name != null) _plugin = PluginEntry.CreateReceiver(name);
+                // No plugin instance exists: Try connecting to a server with
+                // a given name.
+                _plugin = PluginEntry.TryCreateReceiver(_nameFilter);
             }
             else
             {

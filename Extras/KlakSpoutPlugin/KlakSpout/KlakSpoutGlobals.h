@@ -13,13 +13,10 @@
 
 namespace klakspout
 {
-    //
-    // A class for holding global variables
-    //
-    class Globals
+    // Singleton class for holding global variables
+    class Globals final
     {
     public:
-
         ID3D11Device* d3d11_;
         spoutDirectX* spout_;
         spoutSenderNames* sender_names_;

@@ -4,16 +4,10 @@
 
 namespace klakspout
 {
-    //
     // Spout shared object handler class
-    //
-    // This class is directly accessed from the C# land.
-    // Keep careful about the memory layout.
-    //
     class SharedObject final
     {
     public:
-
         // Is it a sender or a receiver?
         enum Type { kSender, kReceiver } type_;
 
@@ -51,12 +45,13 @@ namespace klakspout
             DEBUG_LOG("Resource released (%s).", name_);
         }
 
-        // Detect disconnection from the sender. Returns true on if disconnected.
+        // Detect disconnection from the sender. Returns true if disconnected.
         bool detectDisconnection() const
         {
             auto & g = Globals::get();
 
-            if (type_ == kSender) return false;
+            // Do nothing with senders and uninitialized receivers.
+            if (type_ == kSender || !d3d11_resource_view_) return false;
 
             // Retrieve the sender information.
             unsigned int width, height;
@@ -87,7 +82,6 @@ namespace klakspout
             auto & g = Globals::get();
 
             // The texture format is fixed to RGBA32.
-            // TODO: we should support other formats.
             format_ = DXGI_FORMAT_R8G8B8A8_UNORM;
 
             // Create a shared texture.
@@ -129,7 +123,7 @@ namespace klakspout
         {
             auto & g = Globals::get();
 
-            // Retrieve the sender information with the name.
+            // Retrieve the sender information with the given name.
             HANDLE handle;
             DWORD format;
             unsigned int w, h;
