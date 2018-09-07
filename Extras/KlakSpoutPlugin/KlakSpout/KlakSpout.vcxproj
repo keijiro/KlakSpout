@@ -159,9 +159,6 @@
     <ClInclude Include="Spout\SpoutSharedMemory.h" />
     <ClInclude Include="Unity\IUnityGraphics.h" />
     <ClInclude Include="Unity\IUnityGraphicsD3D11.h" />
-    <ClInclude Include="Unity\IUnityGraphicsD3D12.h" />
-    <ClInclude Include="Unity\IUnityGraphicsD3D9.h" />
-    <ClInclude Include="Unity\IUnityGraphicsMetal.h" />
     <ClInclude Include="Unity\IUnityInterface.h" />
   </ItemGroup>
   <ItemGroup>

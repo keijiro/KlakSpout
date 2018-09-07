@@ -65,16 +65,7 @@
     <ClInclude Include="Unity\IUnityGraphics.h">
       <Filter>Header Files\Unity</Filter>
     </ClInclude>
-    <ClInclude Include="Unity\IUnityGraphicsD3D9.h">
-      <Filter>Header Files\Unity</Filter>
-    </ClInclude>
     <ClInclude Include="Unity\IUnityGraphicsD3D11.h">
-      <Filter>Header Files\Unity</Filter>
-    </ClInclude>
-    <ClInclude Include="Unity\IUnityGraphicsD3D12.h">
-      <Filter>Header Files\Unity</Filter>
-    </ClInclude>
-    <ClInclude Include="Unity\IUnityGraphicsMetal.h">
       <Filter>Header Files\Unity</Filter>
     </ClInclude>
     <ClInclude Include="Unity\IUnityInterface.h">
