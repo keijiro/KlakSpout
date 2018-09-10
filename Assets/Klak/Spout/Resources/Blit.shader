@@ -1,4 +1,4 @@
-﻿// KlakSpout - Spout realtime video sharing plugin for Unity
+// KlakSpout - Spout realtime video sharing plugin for Unity
 // https://github.com/keijiro/KlakSpout
 
 Shader "Hidden/Spout/Blit"
