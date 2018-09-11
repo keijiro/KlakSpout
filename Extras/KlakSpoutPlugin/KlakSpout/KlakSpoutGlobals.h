@@ -13,13 +13,14 @@
 
 namespace klakspout
 {
-    // Singleton class for holding global variables
+    // Singleton class used for storing global variables
     class Globals final
     {
     public:
         ID3D11Device* d3d11_;
-        spoutDirectX* spout_;
-        spoutSenderNames* sender_names_;
+
+        std::unique_ptr<spoutDirectX> spout_;
+        std::unique_ptr<spoutSenderNames> sender_names_;
 
         static Globals& get()
         {

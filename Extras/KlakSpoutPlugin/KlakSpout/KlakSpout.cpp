@@ -1,10 +1,7 @@
-#include "KlakSpoutGlobals.h"
 #include "KlakSpoutSharedObject.h"
-#include "Unity/IUnityInterface.h"
 #include "Unity/IUnityGraphics.h"
 #include "Unity/IUnityGraphicsD3D11.h"
 #include <list>
-#include <memory>
 #include <mutex>
 
 namespace
@@ -12,63 +9,64 @@ namespace
     // Low-level native plugin interface
     IUnityInterfaces* unity_;
 
-    // Shared object list
-    typedef std::list<std::shared_ptr<klakspout::SharedObject>> SharedObjectList;
-    SharedObjectList shared_objects_;
+    // Shared Spout object list
+    std::list<std::unique_ptr<klakspout::SharedObject>> shared_objects_;
     std::mutex shared_objects_lock_;
 
-    // Remove a given object from the list.
+    // Temporary storage for shared Spout object list
+    std::set<std::string> shared_object_names_;
+
+    // Remove an object from the shared Spout object list.
     void remove_shared_object(klakspout::SharedObject* pobj)
     {
         std::lock_guard<std::mutex> guard(shared_objects_lock_);
-        shared_objects_.remove_if([pobj](auto & sp) { return sp.get() == pobj; });
+        shared_objects_.remove_if([pobj](auto& p) { return p.get() == pobj; });
     }
 
-    // Device event callback
+    // Unity device event callback
     void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType event_type)
     {
-        auto & g = klakspout::Globals::get();
+        auto& g = klakspout::Globals::get();
 
         DEBUG_LOG("OnGraphicsDeviceEvent(%d)", event_type);
 
         if (event_type == kUnityGfxDeviceEventInitialize && !g.spout_)
         {
             // Initialize the Spout globals.
-            g.spout_ = new spoutDirectX;
-            g.sender_names_ = new spoutSenderNames;
+            g.spout_ = std::make_unique<spoutDirectX>();
+            g.sender_names_ = std::make_unique<spoutSenderNames>();
         }
 
         if (event_type == kUnityGfxDeviceEventShutdown && g.spout_)
         {
-            // Release all the shared resources.
+            // Release all the Spout shared objects.
             shared_objects_.clear();
 
             // Finalize the Spout globals.
-            delete g.spout_;
-            delete g.sender_names_;
-            g.spout_ = nullptr;
-            g.sender_names_ = nullptr;
+            g.spout_.reset();
+            g.sender_names_.reset();
         }
     }
 
-    // Render event callback
+    // Unity render event callback
     void UNITY_INTERFACE_API OnRenderEvent(int event_id)
     {
-        // Update all the D3D11 resources. This has to be done in the render thread.
+        // Update D3D11 resources with the shared Spout objects.
+        // Note that this has to be done in the render thread.
         std::lock_guard<std::mutex> guard(shared_objects_lock_);
-        for (auto p : shared_objects_) p->updateResources();
+        for (const auto& p : shared_objects_) p->updateResources();
     }
 }
 
 //
-// Low-level plugin interface functions
+// Low-level native plugin implementation
 //
 
 extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces* interfaces)
 {
-    auto & g = klakspout::Globals::get();
+    auto& g = klakspout::Globals::get();
 
-    // Open a new console on debug builds.
+    // Replace stdout with a new console for debugging.
     #if defined(_DEBUG)
     FILE * pConsole;
     AllocConsole();
@@ -88,8 +86,14 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnit
 
 extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginUnload()
 {
+    auto& g = klakspout::Globals::get();
+
     // Unregister the custom callback.
     unity_->Get<IUnityGraphics>()->UnregisterDeviceEventCallback(OnGraphicsDeviceEvent);
+
+    // Invalidate the interface pointers.
+    unity_ = nullptr;
+    g.d3d11_ = nullptr;
 }
 
 extern "C" UnityRenderingEvent UNITY_INTERFACE_EXPORT GetRenderEventFunc()
@@ -98,7 +102,7 @@ extern "C" UnityRenderingEvent UNITY_INTERFACE_EXPORT GetRenderEventFunc()
 }
 
 //
-// Native plugin functions
+// Native plugin implementation
 //
 
 extern "C" void UNITY_INTERFACE_EXPORT * CreateSender(const char* name, int width, int height)
@@ -111,7 +115,9 @@ extern "C" void UNITY_INTERFACE_EXPORT * CreateSender(const char* name, int widt
 
 extern "C" void UNITY_INTERFACE_EXPORT * TryCreateReceiver(const char* name)
 {
-    auto & g = klakspout::Globals::get();
+    auto& g = klakspout::Globals::get();
+
+    // Do nothing if it can't find a sender object with the given name.
     if (!g.sender_names_->FindSenderName(name)) return nullptr;
 
     std::lock_guard<std::mutex> guard(shared_objects_lock_);
@@ -145,32 +151,24 @@ extern "C" int UNITY_INTERFACE_EXPORT GetTextureHeight(void* ptr)
     return reinterpret_cast<klakspout::SharedObject*>(ptr)->height_;
 }
 
-extern "C" int UNITY_INTERFACE_EXPORT CountSharedObjects()
+extern "C" int UNITY_INTERFACE_EXPORT ScanSharedObjects()
 {
-    return klakspout::Globals::get().sender_names_->GetSenderCount();
+    klakspout::Globals::get().sender_names_->GetSenderNames(&shared_object_names_);
+    return shared_object_names_.size();
 }
 
 extern "C" const void UNITY_INTERFACE_EXPORT * GetSharedObjectName(int index)
 {
-    auto & g = klakspout::Globals::get();
-
-    // Static string object used for storing a result.
-    static string temp;
-
-    // Retrieve all the sender names.
-    std::set<std::string> names;
-    g.sender_names_->GetSenderNames(&names);
-
-    // Return the n-th element.
     auto count = 0;
-    for (auto & name : names)
+    for (auto& name : shared_object_names_)
     {
         if (count++ == index)
         {
+            // Return the name via a static string object.
+            static std::string temp;
             temp = name;
             return temp.c_str();
         }
     }
-
     return nullptr;
 }

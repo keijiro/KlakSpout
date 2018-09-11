@@ -46,7 +46,7 @@ namespace Klak.Spout
         void ShowSenderNameDropdown(Rect rect)
         {
             var menu = new GenericMenu();
-            var count = PluginEntry.CountSharedObjects();
+            var count = PluginEntry.ScanSharedObjects();
             for (var i = 0; i < count; i++)
             {
                 var name = PluginEntry.GetSharedObjectNameString(i);

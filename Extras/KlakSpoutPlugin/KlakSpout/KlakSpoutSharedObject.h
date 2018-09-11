@@ -4,14 +4,14 @@
 
 namespace klakspout
 {
-    // Spout shared object handler class
+    // Shared spout object handler class
     class SharedObject final
     {
     public:
-        // Is it a sender or a receiver?
+        // Object type (sender/receiver)
         enum Type { kSender, kReceiver } type_;
 
-        // Resource attributes
+        // Object attributes
         char name_[SpoutMaxSenderNameLen];
         int width_, height_;
         DXGI_FORMAT format_;
@@ -32,25 +32,25 @@ namespace klakspout
         // Destructor
         ~SharedObject()
         {
-            auto & g = Globals::get();
+            auto& g = Globals::get();
 
-            // A sender should unregister its name on destruction.
-            if (type_ == kSender)
-                g.sender_names_->ReleaseSenderName(name_);
+            // Senders should unregister their own name on destruction.
+            if (type_ == kSender) g.sender_names_->ReleaseSenderName(name_);
 
             // Release the D3D11 resources.
             if (d3d11_resource_) d3d11_resource_->Release();
             if (d3d11_resource_view_) d3d11_resource_view_->Release();
 
-            DEBUG_LOG("Resource released (%s).", name_);
+            DEBUG_LOG("Shared object released (%s).", name_);
         }
 
-        // Detect disconnection from the sender. Returns true if disconnected.
+        // Check if a receiver is disconnected from a previously connected sender.
+        // Returns true if disconnected.
         bool detectDisconnection() const
         {
-            auto & g = Globals::get();
+            auto& g = Globals::get();
 
-            // Do nothing with senders and uninitialized receivers.
+            // Do nothing with senders and uninitialized (not yet connected) receivers.
             if (type_ == kSender || !d3d11_resource_view_) return false;
 
             // Retrieve the sender information.
@@ -59,7 +59,7 @@ namespace klakspout
             DWORD format;
             auto res = g.sender_names_->CheckSender(name_, width, height, handle, format);
 
-            // Check if something has been changed.
+            // Check if the dimensions/format have been changed.
             return !res || width != width_ || height != height_ || format_ != format;
         }
 
@@ -79,9 +79,9 @@ namespace klakspout
         // Set up as a sender.
         void setupSender()
         {
-            auto & g = Globals::get();
+            auto& g = Globals::get();
 
-            // The texture format is fixed to RGBA32.
+            // Currently we only support RGBA32.
             format_ = DXGI_FORMAT_R8G8B8A8_UNORM;
 
             // Create a shared texture.
@@ -121,7 +121,7 @@ namespace klakspout
         // Set up as a receiver.
         void setupReceiver()
         {
-            auto & g = Globals::get();
+            auto& g = Globals::get();
 
             // Retrieve the sender information with the given name.
             HANDLE handle;
@@ -139,7 +139,7 @@ namespace klakspout
             height_ = h;
             format_ = static_cast<DXGI_FORMAT>(format);
 
-            // Start using the shared texture.
+            // Start sharing the texture.
             void** ptr = reinterpret_cast<void**>(&d3d11_resource_);
             auto res_d3d = g.d3d11_->OpenSharedResource(handle, __uuidof(ID3D11Resource), ptr);
 

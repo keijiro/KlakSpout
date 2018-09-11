@@ -50,7 +50,7 @@ namespace Klak.Spout
         public static extern int GetTextureHeight(System.IntPtr ptr);
 
         [DllImport("KlakSpout")]
-        public static extern int CountSharedObjects();
+        public static extern int ScanSharedObjects();
 
         [DllImport("KlakSpout")]
         public static extern System.IntPtr GetSharedObjectName(int index);
