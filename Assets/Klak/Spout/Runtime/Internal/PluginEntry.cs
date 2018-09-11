@@ -6,13 +6,13 @@ using System.Runtime.InteropServices;
 
 namespace Klak.Spout
 {
-    public static class PluginEntry
+    static class PluginEntry
     {
         #region Plugin polling
 
         static int _lastUpdateFrame = -1;
 
-        public static void Poll()
+        internal static void Poll()
         {
             if (Time.frameCount != _lastUpdateFrame || !Application.isPlaying)
             {
@@ -26,36 +26,36 @@ namespace Klak.Spout
         #region Native plugin interface
 
         [DllImport("KlakSpout")]
-        public static extern System.IntPtr GetRenderEventFunc();
+        internal static extern System.IntPtr GetRenderEventFunc();
 
         [DllImport("KlakSpout")]
-        public static extern System.IntPtr CreateSender(string name, int width, int height);
+        internal static extern System.IntPtr CreateSender(string name, int width, int height);
 
         [DllImport("KlakSpout")]
-        public static extern System.IntPtr TryCreateReceiver(string name);
+        internal static extern System.IntPtr TryCreateReceiver(string name);
 
         [DllImport("KlakSpout")]
-        public static extern void DestroySharedObject(System.IntPtr ptr);
+        internal static extern void DestroySharedObject(System.IntPtr ptr);
 
         [DllImport("KlakSpout")]
-        public static extern bool DetectDisconnection(System.IntPtr ptr);
+        internal static extern bool DetectDisconnection(System.IntPtr ptr);
 
         [DllImport("KlakSpout")]
-        public static extern System.IntPtr GetTexturePointer(System.IntPtr ptr);
+        internal static extern System.IntPtr GetTexturePointer(System.IntPtr ptr);
 
         [DllImport("KlakSpout")]
-        public static extern int GetTextureWidth(System.IntPtr ptr);
+        internal static extern int GetTextureWidth(System.IntPtr ptr);
 
         [DllImport("KlakSpout")]
-        public static extern int GetTextureHeight(System.IntPtr ptr);
+        internal static extern int GetTextureHeight(System.IntPtr ptr);
 
         [DllImport("KlakSpout")]
-        public static extern int ScanSharedObjects();
+        internal static extern int ScanSharedObjects();
 
         [DllImport("KlakSpout")]
-        public static extern System.IntPtr GetSharedObjectName(int index);
+        internal static extern System.IntPtr GetSharedObjectName(int index);
 
-        public static string GetSharedObjectNameString(int index)
+        internal static string GetSharedObjectNameString(int index)
         {
             var ptr = GetSharedObjectName(index);
             return ptr != System.IntPtr.Zero ? Marshal.PtrToStringAnsi(ptr) : null;
