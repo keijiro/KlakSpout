@@ -10,7 +10,7 @@ namespace Klak.Spout
     [CustomEditor(typeof(SpoutReceiver))]
     sealed class SpoutReceiverEditor : Editor
     {
-        SerializedProperty _nameFilter;
+        SerializedProperty _sourceName;
         SerializedProperty _targetTexture;
         SerializedProperty _targetRenderer;
         SerializedProperty _targetMaterialProperty;
@@ -23,14 +23,10 @@ namespace Klak.Spout
             public static readonly GUIContent Select = new GUIContent("Select");
         }
 
-        // Request receiver reconnection with flip-flopping.
+        // Request receiver reconnection
         void RequestReconnect()
         {
-            foreach (SpoutReceiver receiver in targets)
-            {
-                receiver.enabled = false;
-                receiver.enabled = true;
-            }
+            foreach (SpoutReceiver receiver in targets) receiver.RequestReconnect();
         }
 
         // Check the elapsed time and request repaint with 0.1s interval.
@@ -59,14 +55,14 @@ namespace Klak.Spout
         void OnSelectSenderName(object name)
         {
             serializedObject.Update();
-            _nameFilter.stringValue = (string)name;
+            _sourceName.stringValue = (string)name;
             serializedObject.ApplyModifiedProperties();
             RequestReconnect();
         }
 
         void OnEnable()
         {
-            _nameFilter = serializedObject.FindProperty("_nameFilter");
+            _sourceName = serializedObject.FindProperty("_sourceName");
             _targetTexture = serializedObject.FindProperty("_targetTexture");
             _targetRenderer = serializedObject.FindProperty("_targetRenderer");
             _targetMaterialProperty = serializedObject.FindProperty("_targetMaterialProperty");
@@ -87,7 +83,7 @@ namespace Klak.Spout
 
             // Name filter edit box
             EditorGUI.BeginChangeCheck();
-            EditorGUILayout.DelayedTextField(_nameFilter);
+            EditorGUILayout.DelayedTextField(_sourceName);
             if (EditorGUI.EndChangeCheck()) RequestReconnect();
 
             // Name filter dropdown

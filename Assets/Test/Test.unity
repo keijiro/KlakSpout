@@ -5653,7 +5653,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 62f7dec0b00674947bc631624c21970a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _nameFilter: DX11
+  _sourceName: Spout DX11 Sender
   _targetTexture: {fileID: 8400000, guid: df6e7f57031575449b1f885f026026a6, type: 2}
   _targetRenderer: {fileID: 0}
   _targetMaterialProperty: 

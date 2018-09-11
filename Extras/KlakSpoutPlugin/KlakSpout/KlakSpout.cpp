@@ -118,7 +118,7 @@ extern "C" void UNITY_INTERFACE_EXPORT * TryCreateReceiver(const char* name)
     auto& g = klakspout::Globals::get();
 
     // Do nothing if it can't find a sender object with the given name.
-    if (!g.sender_names_->FindSenderName(name)) return nullptr;
+    if (!name || !g.sender_names_->FindSenderName(name)) return nullptr;
 
     std::lock_guard<std::mutex> guard(shared_objects_lock_);
     auto pobj = new klakspout::SharedObject(klakspout::SharedObject::kReceiver, name);

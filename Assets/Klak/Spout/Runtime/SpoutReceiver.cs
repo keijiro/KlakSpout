@@ -12,11 +12,15 @@ namespace Klak.Spout
     {
         #region Source settings
 
-        [SerializeField] string _nameFilter;
+        [SerializeField] string _sourceName;
 
-        public string nameFilter {
-            get { return _nameFilter; }
-            set { _nameFilter = value; }
+        public string sourceName {
+            get { return _sourceName; }
+            set {
+                if (_sourceName == value) return;
+                _sourceName = value;
+                RequestReconnect();
+            }
         }
 
         #endregion
@@ -65,7 +69,16 @@ namespace Klak.Spout
 
         #endregion
 
-        #region MonoBehaviour functions
+        #region Internal methods
+
+        internal void RequestReconnect()
+        {
+            OnDisable();
+        }
+
+        #endregion
+
+        #region MonoBehaviour implementation
 
         void OnDisable()
         {
@@ -93,7 +106,7 @@ namespace Klak.Spout
             {
                 // No plugin instance exists: Try connecting to a server with
                 // a given name.
-                _plugin = PluginEntry.TryCreateReceiver(_nameFilter);
+                _plugin = PluginEntry.TryCreateReceiver(_sourceName);
             }
             else
             {
