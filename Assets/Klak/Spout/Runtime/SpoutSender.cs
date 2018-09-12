@@ -1,4 +1,4 @@
-// KlakSpout - Spout realtime video sharing plugin for Unity
+// KlakSpout - Spout video frame sharing plugin for Unity
 // https://github.com/keijiro/KlakSpout
 
 using UnityEngine;
@@ -71,14 +71,14 @@ namespace Klak.Spout
                 // Blit shader parameters
                 _blitMaterial.SetFloat("_ClearAlpha", _alphaSupport ? 0 : 1);
 
-                // Allocate a temporary RT and blit the source to it.
-                var tempRT = RenderTexture.GetTemporary(_sharedTexture.width, _sharedTexture.height);
+                // We can't directly blit to the shared texture (as it lacks
+                // render buffer functionality), so we temporarily allocate a
+                // render texture as a middleman, blit the source to it, then
+                // copy it to the shared texture using the CopyTexture API.
+                var tempRT = RenderTexture.GetTemporary
+                    (_sharedTexture.width, _sharedTexture.height);
                 Graphics.Blit(source, tempRT, _blitMaterial, 0);
-
-                // Copy to the shared texture.
                 Graphics.CopyTexture(tempRT, _sharedTexture);
-
-                // Release the temporary objects.
                 RenderTexture.ReleaseTemporary(tempRT);
             }
         }
@@ -107,16 +107,17 @@ namespace Klak.Spout
         {
             PluginEntry.Poll();
 
-            // Render texture mode
+            // Render texture mode update
             if (GetComponent<Camera>() == null && _sourceTexture != null)
                 SendRenderTexture(_sourceTexture);
         }
 
         void OnRenderImage(RenderTexture source, RenderTexture destination)
         {
-            // Camera capture mode
+            // Camera capture mode update
             SendRenderTexture(source);
 
+            // Thru blit
             Graphics.Blit(source, destination);
         }
 

@@ -1,4 +1,4 @@
-// KlakSpout - Spout realtime video sharing plugin for Unity
+// KlakSpout - Spout video frame sharing plugin for Unity
 // https://github.com/keijiro/KlakSpout
 
 using UnityEngine;
@@ -8,7 +8,8 @@ namespace Klak.Spout
 {
     public static class SpoutManager
     {
-        // Scan available sources and return their names with a string array.
+        // Scan available Spout sources and return their names via a newly
+        // allocated string array.
         public static string[] GetSourceNames()
         {
             var count = Klak.Spout.PluginEntry.ScanSharedObjects();
@@ -18,13 +19,14 @@ namespace Klak.Spout
             return names;
         }
 
-        // Scan available sources and store their names into a given collection object.
-        public static void GetSourceNames(ICollection<string> dest)
+        // Scan available Spout sources and store their names into the given
+        // collection object.
+        public static void GetSourceNames(ICollection<string> store)
         {
-            dest.Clear();
+            store.Clear();
             var count = Klak.Spout.PluginEntry.ScanSharedObjects();
             for (var i = 0; i < count; i++)
-                dest.Add(PluginEntry.GetSharedObjectNameString(i));
+                store.Add(PluginEntry.GetSharedObjectNameString(i));
         }
     }
 }

@@ -1,11 +1,10 @@
-// KlakSpout - Spout realtime video sharing plugin for Unity
+// KlakSpout - Spout video frame sharing plugin for Unity
 // https://github.com/keijiro/KlakSpout
 
 using UnityEngine;
 
 namespace Klak.Spout
 {
-    // Spout receiver class
     [ExecuteInEditMode]
     [AddComponentMenu("Klak/Spout/Spout Receiver")]
     public sealed class SpoutReceiver : MonoBehaviour
@@ -50,7 +49,7 @@ namespace Klak.Spout
 
         #endregion
 
-        #region Public properties
+        #region Runtime properties
 
         RenderTexture _receivedTexture;
 
@@ -69,7 +68,7 @@ namespace Klak.Spout
 
         #endregion
 
-        #region Internal methods
+        #region Internal members
 
         internal void RequestReconnect()
         {
@@ -104,14 +103,15 @@ namespace Klak.Spout
             // Plugin initialization/termination
             if (_plugin == System.IntPtr.Zero)
             {
-                // No plugin instance exists: Try connecting to a server with
-                // a given name.
+                // No plugin instance exists:
+                // Try connecting to the specified Spout source.
                 _plugin = PluginEntry.TryCreateReceiver(_sourceName);
             }
             else
             {
-                // A plugin instance exists: Check if the connection is still
-                // alive. Destroy it when disconnected.
+                // A plugin instance exists:
+                // Check if the connection is still alive. If it seems to be
+                // disconnected from the source, dispose the instance.
                 if (PluginEntry.DetectDisconnection(_plugin)) OnDisable();
             }
 
@@ -126,15 +126,15 @@ namespace Klak.Spout
                         PluginEntry.GetTextureHeight(_plugin),
                         TextureFormat.ARGB32, false, false, ptr
                     );
+                    _sharedTexture.hideFlags = HideFlags.DontSave;
 
-                    // The previously allocated buffer should be disposed to
-                    // refresh it. This is needed to follow changes in the
-                    // dimensions of the shared texture.
+                    // Dispose a previously allocated instance of receiver
+                    // texture to refresh texture specifications.
                     if (_receivedTexture == null) Util.Destroy(_receivedTexture);
                 }
             }
 
-            // Blit the shared texture to the destination.
+            // Texture format conversion with the blit shader
             if (_sharedTexture != null)
             {
                 // Blit shader lazy initialization
@@ -146,27 +146,32 @@ namespace Klak.Spout
 
                 if (_targetTexture != null)
                 {
-                    // Blit to the target texture.
+                    // Blit the shared texture to the target texture.
                     Graphics.Blit(_sharedTexture, _targetTexture, _blitMaterial, 1);
                 }
                 else
                 {
-                    // Receive buffer lazy initialization
+                    // Receiver texture lazy initialization
                     if (_receivedTexture == null)
                     {
-                        _receivedTexture = new RenderTexture(_sharedTexture.width, _sharedTexture.height, 0);
+                        _receivedTexture = new RenderTexture
+                            (_sharedTexture.width, _sharedTexture.height, 0);
                         _receivedTexture.hideFlags = HideFlags.DontSave;
                     }
 
-                    // Blit to the receive buffer.
+                    // Blit the shared texture to the receiver texture.
                     Graphics.Blit(_sharedTexture, _receivedTexture, _blitMaterial, 1);
                 }
             }
 
-            // Target renderer override
+            // Renderer override
             if (_targetRenderer != null)
             {
-                if (_propertyBlock == null) _propertyBlock = new MaterialPropertyBlock();
+                // Material property block lazy initialization
+                if (_propertyBlock == null)
+                    _propertyBlock = new MaterialPropertyBlock();
+
+                // Read-modify-write
                 _targetRenderer.GetPropertyBlock(_propertyBlock);
                 _propertyBlock.SetTexture(_targetMaterialProperty, receivedTexture);
                 _targetRenderer.SetPropertyBlock(_propertyBlock);
@@ -175,19 +180,18 @@ namespace Klak.Spout
 
         #if UNITY_EDITOR
 
-        // In Editor, do Update on repaint. This is needed to update the shared
-        // texture without getting the object dirty.
+        // Invoke update on repaint in edit mode. This is needed to update the
+        // shared texture without getting the object marked dirty.
 
         void OnRenderObject()
         {
-            if (!Application.isPlaying)
-            {
-                // We have to restore the current active RT after update for
-                // the scene view (Graphics.Blit is going to override it).
-                var activeRT = RenderTexture.active;
-                Update();
-                RenderTexture.active = activeRT;
-            }
+            if (Application.isPlaying) return;
+
+            // Graphic.Blit used in Update will change the current active RT,
+            // so let us back it up and restore after Update.
+            var activeRT = RenderTexture.active;
+            Update();
+            RenderTexture.active = activeRT;
         }
 
         #endif

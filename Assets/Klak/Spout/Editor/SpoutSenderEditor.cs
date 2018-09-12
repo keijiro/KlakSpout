@@ -1,4 +1,4 @@
-// KlakSpout - Spout realtime video sharing plugin for Unity
+// KlakSpout - Spout video frame sharing plugin for Unity
 // https://github.com/keijiro/KlakSpout
 
 using UnityEngine;
@@ -35,7 +35,7 @@ namespace Klak.Spout
                         MessageType.None
                     );
 
-                    // Don't show the source texture property.
+                    // Hide the source texture property.
                 }
                 else
                 {

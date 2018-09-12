@@ -1,4 +1,4 @@
-// KlakSpout - Spout realtime video sharing plugin for Unity
+// KlakSpout - Spout video frame sharing plugin for Unity
 // https://github.com/keijiro/KlakSpout
 
 using UnityEngine;
@@ -23,13 +23,13 @@ namespace Klak.Spout
             public static readonly GUIContent Select = new GUIContent("Select");
         }
 
-        // Request receiver reconnection
+        // Request receiver reconnection.
         void RequestReconnect()
         {
             foreach (SpoutReceiver receiver in targets) receiver.RequestReconnect();
         }
 
-        // Check the elapsed time and request repaint with 0.1s interval.
+        // Check and request repaint with 0.1s interval.
         void CheckRepaint()
         {
             var time = EditorApplication.timeSinceStartup;
@@ -38,21 +38,21 @@ namespace Klak.Spout
             _prevRepaintTime = time;
         }
 
-        // Create and show the Spout sender name dropdown.
-        void ShowSenderNameDropdown(Rect rect)
+        // Create and show the source name dropdown.
+        void ShowSourceNameDropdown(Rect rect)
         {
             var menu = new GenericMenu();
             var count = PluginEntry.ScanSharedObjects();
             for (var i = 0; i < count; i++)
             {
                 var name = PluginEntry.GetSharedObjectNameString(i);
-                menu.AddItem(new GUIContent(name), false, OnSelectSenderName, name);
+                menu.AddItem(new GUIContent(name), false, OnSelectSource, name);
             }
             menu.DropDown(rect);
         }
 
-        // Sender name selection callback: Called from the dropdown.
-        void OnSelectSenderName(object name)
+        // Source name selection callback
+        void OnSelectSource(object name)
         {
             serializedObject.Update();
             _sourceName.stringValue = (string)name;
@@ -81,15 +81,15 @@ namespace Klak.Spout
 
             EditorGUILayout.BeginHorizontal();
 
-            // Name filter edit box
+            // Source name text field
             EditorGUI.BeginChangeCheck();
             EditorGUILayout.DelayedTextField(_sourceName);
             if (EditorGUI.EndChangeCheck()) RequestReconnect();
 
-            // Name filter dropdown
+            // Source name dropdown
             var rect = EditorGUILayout.GetControlRect(false, GUILayout.Width(60));
             if (EditorGUI.DropdownButton(rect, Labels.Select, FocusType.Keyboard))
-                ShowSenderNameDropdown(rect);
+                ShowSourceNameDropdown(rect);
 
             EditorGUILayout.EndHorizontal();
 
@@ -101,12 +101,12 @@ namespace Klak.Spout
 
             if (_targetRenderer.hasMultipleDifferentValues)
             {
-                // Show a simple text field if there are multiple values.
+                // Multiple renderers selected: Show a simple text field.
                 EditorGUILayout.PropertyField(_targetMaterialProperty, Labels.Property);
             }
             else if (_targetRenderer.objectReferenceValue != null)
             {
-                // Show the material property selection dropdown.
+                // Single renderer: Show the material property selection dropdown.
                 MaterialPropertySelector.DropdownList(_targetRenderer, _targetMaterialProperty);
             }
 

@@ -1,4 +1,4 @@
-// KlakSpout - Spout realtime video sharing plugin for Unity
+// KlakSpout - Spout video frame sharing plugin for Unity
 // https://github.com/keijiro/KlakSpout
 
 using UnityEngine;
@@ -21,7 +21,7 @@ namespace Klak.Spout
             // Try retrieving the target shader.
             var shader = RetrieveTargetShader(rendererProperty);
 
-            // Abandon if it failed to get a shader.
+            // Abandon the current value if it failed to get a shader.
             if (shader == null)
             {
                 materialProperty.stringValue = "";
@@ -31,7 +31,7 @@ namespace Klak.Spout
             // Cache property names found in the target shader.
             CachePropertyNames(shader);
 
-            // Abandon if there is no property candidate.
+            // Abandon the current value if there is no property candidate.
             if (_propertyNames.Length == 0)
             {
                 materialProperty.stringValue = "";
@@ -50,8 +50,8 @@ namespace Klak.Spout
 
         #region Private members
 
-        static string[] _propertyNames; // property name list
-        static Shader _cachedShader;    // shader used to cache the name list
+        static string[] _propertyNames; // Property name list
+        static Shader _cachedShader;    // Shader used to cache the name list
 
         // Retrieve a shader from a given renderer.
         static Shader RetrieveTargetShader(SerializedProperty rendererProperty)
@@ -65,8 +65,7 @@ namespace Klak.Spout
             return material.shader;
         }
 
-
-        // Cache property names in a given shader.
+        // Cache property names provided within a specified shader.
         static void CachePropertyNames(Shader shader)
         {
             // Exit early when the shader is same to the cached one.
