@@ -165,7 +165,7 @@ namespace Klak.Spout
             }
 
             // Renderer override
-            if (_targetRenderer != null)
+            if (_targetRenderer != null && receivedTexture != null)
             {
                 // Material property block lazy initialization
                 if (_propertyBlock == null)
