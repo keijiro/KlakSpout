@@ -11,15 +11,21 @@ namespace
 
     // Shared Spout object list
     std::list<std::unique_ptr<klakspout::SharedObject>> shared_objects_;
-    std::mutex shared_objects_lock_;
 
     // Temporary storage for shared Spout object list
     std::set<std::string> shared_object_names_;
 
+    // Local mutex object used to prevent race conditions between the main
+    // thread and the render thread. This should be locked at the following
+    // points:
+    // - OnRenderEvent (this is the only point called from the render thread)
+    // - Plugin entry function that accesses shared_objects_
+    // - Plugin entry function that uses Spout API
+    std::mutex lock_;
+
     // Remove an object from the shared Spout object list.
     void remove_shared_object(klakspout::SharedObject* pobj)
     {
-        std::lock_guard<std::mutex> guard(shared_objects_lock_);
         shared_objects_.remove_if([pobj](auto& p) { return p.get() == pobj; });
     }
 
@@ -35,6 +41,13 @@ namespace
             // Initialize the Spout globals.
             g.spout_ = std::make_unique<spoutDirectX>();
             g.sender_names_ = std::make_unique<spoutSenderNames>();
+
+            // Set the maximum number of senders.
+            // This should be exposed to the C# side, but it's a little bit
+            // tricky as this setting is not allowed to modify after
+            // initialization. So we simply chose to increase it to 32
+            // (default is 10) as an ad-hoc workaround.
+            g.sender_names_->SetMaxSenders(32);
         }
 
         if (event_type == kUnityGfxDeviceEventShutdown && g.spout_)
@@ -51,9 +64,10 @@ namespace
     // Unity render event callback
     void UNITY_INTERFACE_API OnRenderEvent(int event_id)
     {
+        std::lock_guard<std::mutex> guard(lock_);
+
         // Update D3D11 resources with the shared Spout objects.
         // Note that this has to be done in the render thread.
-        std::lock_guard<std::mutex> guard(shared_objects_lock_);
         for (const auto& p : shared_objects_) p->updateResources();
     }
 }
@@ -107,7 +121,7 @@ extern "C" UnityRenderingEvent UNITY_INTERFACE_EXPORT GetRenderEventFunc()
 
 extern "C" void UNITY_INTERFACE_EXPORT * CreateSender(const char* name, int width, int height)
 {
-    std::lock_guard<std::mutex> guard(shared_objects_lock_);
+    std::lock_guard<std::mutex> guard(lock_);
     auto pobj = new klakspout::SharedObject(klakspout::SharedObject::kSender, name, width, height);
     shared_objects_.emplace_front(pobj);
     return pobj;
@@ -115,12 +129,12 @@ extern "C" void UNITY_INTERFACE_EXPORT * CreateSender(const char* name, int widt
 
 extern "C" void UNITY_INTERFACE_EXPORT * TryCreateReceiver(const char* name)
 {
-    auto& g = klakspout::Globals::get();
+    std::lock_guard<std::mutex> guard(lock_);
 
     // Do nothing if it can't find a sender object with the given name.
+    auto& g = klakspout::Globals::get();
     if (!name || !g.sender_names_->FindSenderName(name)) return nullptr;
 
-    std::lock_guard<std::mutex> guard(shared_objects_lock_);
     auto pobj = new klakspout::SharedObject(klakspout::SharedObject::kReceiver, name);
     shared_objects_.emplace_front(pobj);
     return pobj;
@@ -128,11 +142,13 @@ extern "C" void UNITY_INTERFACE_EXPORT * TryCreateReceiver(const char* name)
 
 extern "C" UNITY_INTERFACE_EXPORT void DestroySharedObject(void* ptr)
 {
+    std::lock_guard<std::mutex> guard(lock_);
     remove_shared_object(reinterpret_cast<klakspout::SharedObject*>(ptr));
 }
 
 extern "C" bool UNITY_INTERFACE_EXPORT DetectDisconnection(void* ptr)
 {
+    std::lock_guard<std::mutex> guard(lock_);
     return reinterpret_cast<klakspout::SharedObject*>(ptr)->detectDisconnection();
 }
 
@@ -153,6 +169,7 @@ extern "C" int UNITY_INTERFACE_EXPORT GetTextureHeight(void* ptr)
 
 extern "C" int UNITY_INTERFACE_EXPORT ScanSharedObjects()
 {
+    std::lock_guard<std::mutex> guard(lock_);
     klakspout::Globals::get().sender_names_->GetSenderNames(&shared_object_names_);
     return shared_object_names_.size();
 }
