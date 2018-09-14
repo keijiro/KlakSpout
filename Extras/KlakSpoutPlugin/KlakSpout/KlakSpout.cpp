@@ -122,7 +122,7 @@ extern "C" UnityRenderingEvent UNITY_INTERFACE_EXPORT GetRenderEventFunc()
 extern "C" void UNITY_INTERFACE_EXPORT * CreateSender(const char* name, int width, int height)
 {
     std::lock_guard<std::mutex> guard(lock_);
-    auto pobj = new klakspout::SharedObject(klakspout::SharedObject::kSender, name, width, height);
+    auto pobj = new klakspout::SharedObject(klakspout::SharedObject::Type::sender, name, width, height);
     shared_objects_.emplace_front(pobj);
     return pobj;
 }
@@ -135,7 +135,7 @@ extern "C" void UNITY_INTERFACE_EXPORT * TryCreateReceiver(const char* name)
     auto& g = klakspout::Globals::get();
     if (!name || !g.sender_names_->FindSenderName(name)) return nullptr;
 
-    auto pobj = new klakspout::SharedObject(klakspout::SharedObject::kReceiver, name);
+    auto pobj = new klakspout::SharedObject(klakspout::SharedObject::Type::receiver, name);
     shared_objects_.emplace_front(pobj);
     return pobj;
 }

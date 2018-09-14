@@ -9,7 +9,7 @@ namespace klakspout
     {
     public:
         // Object type (sender/receiver)
-        enum Type { kSender, kReceiver } type_;
+        enum class Type { sender, receiver } type_;
 
         // Object attributes
         char name_[SpoutMaxSenderNameLen];
@@ -35,7 +35,7 @@ namespace klakspout
             auto& g = Globals::get();
 
             // Senders should unregister their own name on destruction.
-            if (type_ == kSender) g.sender_names_->ReleaseSenderName(name_);
+            if (type_ == Type::sender) g.sender_names_->ReleaseSenderName(name_);
 
             // Release the D3D11 resources.
             if (d3d11_resource_) d3d11_resource_->Release();
@@ -51,7 +51,7 @@ namespace klakspout
             auto& g = Globals::get();
 
             // Do nothing with senders and uninitialized (not yet connected) receivers.
-            if (type_ == kSender || !d3d11_resource_view_) return false;
+            if (type_ == Type::sender || !d3d11_resource_view_) return false;
 
             // Retrieve the sender information.
             unsigned int width, height;
@@ -69,7 +69,7 @@ namespace klakspout
             // Call the setup function if it hasn't been set up.
             if (!d3d11_resource_view_)
             {
-                if (type_ == kSender)
+                if (type_ == Type::sender)
                     setupSender();
                 else
                     setupReceiver();
