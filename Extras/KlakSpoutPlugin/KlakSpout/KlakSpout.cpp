@@ -6,11 +6,13 @@
 
 namespace
 {
+    using SharedObjectState = klakspout::SharedObject::State;
+
     // Low-level native plugin interface
     IUnityInterfaces* unity_;
 
     // Shared Spout object list
-    std::list<std::unique_ptr<klakspout::SharedObject>> shared_objects_;
+    std::list<klakspout::SharedObject> shared_objects_;
 
     // Temporary storage for shared Spout object list
     std::set<std::string> shared_object_names_;
@@ -19,15 +21,9 @@ namespace
     // thread and the render thread. This should be locked at the following
     // points:
     // - OnRenderEvent (this is the only point called from the render thread)
-    // - Plugin entry function that accesses shared_objects_
-    // - Plugin entry function that uses Spout API
+    // - Plugin function that accesses shared_objects_
+    // - Plugin function that uses Spout API
     std::mutex lock_;
-
-    // Remove an object from the shared Spout object list.
-    void remove_shared_object(klakspout::SharedObject* pobj)
-    {
-        shared_objects_.remove_if([pobj](auto& p) { return p.get() == pobj; });
-    }
 
     // Unity device event callback
     void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType event_type)
@@ -52,7 +48,10 @@ namespace
 
         if (event_type == kUnityGfxDeviceEventShutdown && g.spout_)
         {
-            // Release all the Spout shared objects.
+            // Run the last update to process pending release request.
+            for (auto& obj : shared_objects_) obj.updateFromRenderThread();
+
+            // Release the object list for checking leaks.
             shared_objects_.clear();
 
             // Finalize the Spout globals.
@@ -66,9 +65,11 @@ namespace
     {
         std::lock_guard<std::mutex> guard(lock_);
 
-        // Update D3D11 resources with the shared Spout objects.
-        // Note that this has to be done in the render thread.
-        for (const auto& p : shared_objects_) p->updateResources();
+        // Run render thread-dependent update with the shared Spout objects.
+        for (auto& obj : shared_objects_) obj.updateFromRenderThread();
+
+        // Remove destroyed objects from the list.
+        shared_objects_.remove_if([](const auto& obj) { return obj.state_ == SharedObjectState::destroyed; });
     }
 }
 
@@ -122,9 +123,8 @@ extern "C" UnityRenderingEvent UNITY_INTERFACE_EXPORT GetRenderEventFunc()
 extern "C" void UNITY_INTERFACE_EXPORT * CreateSender(const char* name, int width, int height)
 {
     std::lock_guard<std::mutex> guard(lock_);
-    auto pobj = new klakspout::SharedObject(klakspout::SharedObject::Type::sender, name, width, height);
-    shared_objects_.emplace_front(pobj);
-    return pobj;
+    shared_objects_.emplace_front(klakspout::SharedObject::Type::sender, name, width, height);
+    return &shared_objects_.front();
 }
 
 extern "C" void UNITY_INTERFACE_EXPORT * TryCreateReceiver(const char* name)
@@ -135,43 +135,49 @@ extern "C" void UNITY_INTERFACE_EXPORT * TryCreateReceiver(const char* name)
     auto& g = klakspout::Globals::get();
     if (!name || !g.sender_names_->FindSenderName(name)) return nullptr;
 
-    auto pobj = new klakspout::SharedObject(klakspout::SharedObject::Type::receiver, name);
-    shared_objects_.emplace_front(pobj);
-    return pobj;
+    shared_objects_.emplace_front(klakspout::SharedObject::Type::receiver, name);
+    return &shared_objects_.front();
 }
 
 extern "C" UNITY_INTERFACE_EXPORT void DestroySharedObject(void* ptr)
 {
-    std::lock_guard<std::mutex> guard(lock_);
-    remove_shared_object(reinterpret_cast<klakspout::SharedObject*>(ptr));
+    auto* pobj = reinterpret_cast<klakspout::SharedObject*>(ptr);
+    // If the object is in initialized state, there must be nothing to
+    // release, so it can directly go to the destroyed state. The only
+    // thing we actually take care of is the active state.
+    if (pobj->state_ == SharedObjectState::initialized)
+        pobj->state_ = SharedObjectState::destroyed;
+    else if (pobj->state_ == SharedObjectState::active)
+        pobj->state_ =  SharedObjectState::released;
 }
 
 extern "C" bool UNITY_INTERFACE_EXPORT DetectDisconnection(void* ptr)
 {
     std::lock_guard<std::mutex> guard(lock_);
-    return reinterpret_cast<klakspout::SharedObject*>(ptr)->detectDisconnection();
+    return reinterpret_cast<const klakspout::SharedObject*>(ptr)->detectDisconnection();
 }
 
 extern "C" void UNITY_INTERFACE_EXPORT * GetTexturePointer(void* ptr)
 {
-    return reinterpret_cast<klakspout::SharedObject*>(ptr)->d3d11_resource_view_;
+    auto const* pobj = reinterpret_cast<const klakspout::SharedObject*>(ptr);
+    return pobj->state_ == SharedObjectState::active ? pobj->d3d11_resource_view_ : nullptr;
 }
 
 extern "C" int UNITY_INTERFACE_EXPORT GetTextureWidth(void* ptr)
 {
-    return reinterpret_cast<klakspout::SharedObject*>(ptr)->width_;
+    return reinterpret_cast<const klakspout::SharedObject*>(ptr)->width_;
 }
 
 extern "C" int UNITY_INTERFACE_EXPORT GetTextureHeight(void* ptr)
 {
-    return reinterpret_cast<klakspout::SharedObject*>(ptr)->height_;
+    return reinterpret_cast<const klakspout::SharedObject*>(ptr)->height_;
 }
 
 extern "C" int UNITY_INTERFACE_EXPORT ScanSharedObjects()
 {
     std::lock_guard<std::mutex> guard(lock_);
     klakspout::Globals::get().sender_names_->GetSenderNames(&shared_object_names_);
-    return shared_object_names_.size();
+    return static_cast<int>(shared_object_names_.size());
 }
 
 extern "C" const void UNITY_INTERFACE_EXPORT * GetSharedObjectName(int index)

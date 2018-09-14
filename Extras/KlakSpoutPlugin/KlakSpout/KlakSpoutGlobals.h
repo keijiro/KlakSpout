@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdio>
+#include <cassert>
 #include <d3d11.h>
 #include "Spout/SpoutSDK.h"
 
