@@ -54,6 +54,26 @@ namespace klakspout
             return d3d11_resource_;
         }
 
+        // Validate the internal resources.
+        bool isValid() const
+        {
+            // Nothing to validate for senders.
+            if (type_ == Type::sender) return true;
+
+            // Non-active objects have nothing to validate.
+            if (!isActive()) return true;
+
+            auto& g = Globals::get();
+
+            // This must be an active receiver, so check if the connection to
+            // the sender is still valid.
+            unsigned int width, height;
+            HANDLE handle;
+            DWORD format;
+            auto found = g.sender_names_->CheckSender(name_.c_str(), width, height, handle, format);
+            return found && width_ == width && height_ == height;
+        }
+
         // Try activating the object. Returns false when failed.
         bool activate()
         {
@@ -98,7 +118,10 @@ namespace klakspout
             auto& g = Globals::get();
 
             // Avoid name duplication.
-            if (g.checkSenderExists(name_.c_str())) return false;
+            {
+                unsigned int width, height; HANDLE handle; DWORD format; // unused
+                if (g.sender_names_->CheckSender(name_.c_str(), width, height, handle, format)) return false;
+            }
 
             // Currently we only support RGBA32.
             const auto format = DXGI_FORMAT_R8G8B8A8_UNORM;

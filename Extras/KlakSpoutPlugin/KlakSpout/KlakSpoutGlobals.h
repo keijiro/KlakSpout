@@ -33,11 +33,5 @@ namespace klakspout
         {
             return d3d11_;
         }
-
-        bool checkSenderExists(const char* name) const
-        {
-            unsigned int width, height; HANDLE handle; DWORD format; // unused
-            return sender_names_->CheckSender(name, width, height, handle, format);
-        }
     };
 }

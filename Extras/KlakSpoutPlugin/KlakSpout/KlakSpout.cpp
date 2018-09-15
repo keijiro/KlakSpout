@@ -144,11 +144,10 @@ extern "C" int UNITY_INTERFACE_EXPORT GetTextureHeight(void* ptr)
     return reinterpret_cast<const klakspout::SharedObject*>(ptr)->height_;
 }
 
-extern "C" int UNITY_INTERFACE_EXPORT CheckSenderExists(const char* name)
+extern "C" int UNITY_INTERFACE_EXPORT CheckValid(void* ptr)
 {
-    auto& g = klakspout::Globals::get();
-    if (!g.isReady()) return 0;
-    return g.checkSenderExists(name);
+    std::lock_guard<std::mutex> guard(lock_);
+    return reinterpret_cast<const klakspout::SharedObject*>(ptr)->isValid();
 }
 
 extern "C" int UNITY_INTERFACE_EXPORT ScanSharedObjects()

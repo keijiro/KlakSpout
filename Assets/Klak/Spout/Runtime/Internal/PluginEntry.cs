@@ -38,7 +38,7 @@ namespace Klak.Spout
         internal static extern int GetTextureHeight(System.IntPtr ptr);
 
         [DllImport("KlakSpout")] [return: MarshalAs(UnmanagedType.Bool)]
-        internal static extern bool CheckSenderExists(string name);
+        internal static extern bool CheckValid(System.IntPtr ptr);
 
         [DllImport("KlakSpout")]
         internal static extern int ScanSharedObjects();

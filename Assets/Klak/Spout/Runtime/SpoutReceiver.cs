@@ -98,11 +98,9 @@ namespace Klak.Spout
 
         void Update()
         {
-            // Release an existing plugin instance when a previously connected
-            // sender is now missing.
-            if (_plugin != System.IntPtr.Zero &&
-                PluginEntry.GetTexturePointer(_plugin) != System.IntPtr.Zero &&
-                !PluginEntry.CheckSenderExists(_sourceName))
+            // Release the plugin instance when the previously established
+            // connection is now invalid.
+            if (_plugin != System.IntPtr.Zero && !PluginEntry.CheckValid(_plugin))
             {
                 Util.IssuePluginEvent(PluginEntry.Event.Dispose, _plugin);
                 _plugin = System.IntPtr.Zero;
