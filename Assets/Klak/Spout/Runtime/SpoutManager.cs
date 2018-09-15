@@ -12,7 +12,7 @@ namespace Klak.Spout
         // allocated string array.
         public static string[] GetSourceNames()
         {
-            var count = Klak.Spout.PluginEntry.ScanSharedObjects();
+            var count = PluginEntry.ScanSharedObjects();
             var names = new string [count];
             for (var i = 0; i < count; i++)
                 names[i] = PluginEntry.GetSharedObjectNameString(i);
@@ -24,7 +24,7 @@ namespace Klak.Spout
         public static void GetSourceNames(ICollection<string> store)
         {
             store.Clear();
-            var count = Klak.Spout.PluginEntry.ScanSharedObjects();
+            var count = PluginEntry.ScanSharedObjects();
             for (var i = 0; i < count; i++)
                 store.Add(PluginEntry.GetSharedObjectNameString(i));
         }

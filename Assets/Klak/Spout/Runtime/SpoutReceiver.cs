@@ -83,7 +83,7 @@ namespace Klak.Spout
         {
             if (_plugin != System.IntPtr.Zero)
             {
-                PluginEntry.DestroySharedObject(_plugin);
+                Util.IssuePluginEvent(PluginEntry.Event.Dispose, _plugin);
                 _plugin = System.IntPtr.Zero;
             }
 
@@ -98,40 +98,53 @@ namespace Klak.Spout
 
         void Update()
         {
-            PluginEntry.Poll();
+            // Release an existing plugin instance when a previously connected
+            // sender is now missing.
+            if (_plugin != System.IntPtr.Zero &&
+                PluginEntry.GetTexturePointer(_plugin) != System.IntPtr.Zero &&
+                !PluginEntry.CheckSenderExists(_sourceName))
+            {
+                Util.IssuePluginEvent(PluginEntry.Event.Dispose, _plugin);
+                _plugin = System.IntPtr.Zero;
+            }
 
-            // Plugin initialization/termination
+            // Plugin lazy initialization
             if (_plugin == System.IntPtr.Zero)
             {
-                // No plugin instance exists:
-                // Try connecting to the specified Spout source.
-                _plugin = PluginEntry.TryCreateReceiver(_sourceName);
-            }
-            else
-            {
-                // A plugin instance exists:
-                // Check if the connection is still alive. If it seems to be
-                // disconnected from the source, dispose the instance.
-                if (PluginEntry.DetectDisconnection(_plugin)) OnDisable();
+                _plugin = PluginEntry.CreateReceiver(_sourceName);
+                if (_plugin == System.IntPtr.Zero) return; // Spout may not be ready.
             }
 
-            // Shared texture lazy initialization
-            if (_plugin != System.IntPtr.Zero && _sharedTexture == null)
+            Util.IssuePluginEvent(PluginEntry.Event.Update, _plugin);
+
+            // Texture information retrieval
+            var ptr = PluginEntry.GetTexturePointer(_plugin);
+            var width = PluginEntry.GetTextureWidth(_plugin);
+            var height = PluginEntry.GetTextureHeight(_plugin);
+
+            // Resource validity check
+            if (_sharedTexture != null)
             {
-                var ptr = PluginEntry.GetTexturePointer(_plugin);
-                if (ptr != System.IntPtr.Zero)
+                if (ptr != _sharedTexture.GetNativeTexturePtr() ||
+                    width != _sharedTexture.width ||
+                    height != _sharedTexture.height)
                 {
-                    _sharedTexture = Texture2D.CreateExternalTexture(
-                        PluginEntry.GetTextureWidth(_plugin),
-                        PluginEntry.GetTextureHeight(_plugin),
-                        TextureFormat.ARGB32, false, false, ptr
-                    );
-                    _sharedTexture.hideFlags = HideFlags.DontSave;
-
-                    // Dispose a previously allocated instance of receiver
-                    // texture to refresh texture specifications.
-                    if (_receivedTexture == null) Util.Destroy(_receivedTexture);
+                    // Not match: Destroy to get refreshed.
+                    Util.Destroy(_sharedTexture);
                 }
+            }
+
+            // Shared texture lazy (re)initialization
+            if (_sharedTexture == null && ptr != System.IntPtr.Zero)
+            {
+                _sharedTexture = Texture2D.CreateExternalTexture(
+                    width, height, TextureFormat.ARGB32, false, false, ptr
+                );
+                _sharedTexture.hideFlags = HideFlags.DontSave;
+
+                // Destroy the previously allocated receiver texture to
+                // refresh specifications.
+                if (_receivedTexture == null) Util.Destroy(_receivedTexture);
             }
 
             // Texture format conversion with the blit shader

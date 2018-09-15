@@ -18,8 +18,8 @@ namespace klakspout
     class Globals final
     {
     public:
-        ID3D11Device* d3d11_;
 
+        ID3D11Device* d3d11_;
         std::unique_ptr<spoutDirectX> spout_;
         std::unique_ptr<spoutSenderNames> sender_names_;
 
@@ -27,6 +27,17 @@ namespace klakspout
         {
             static Globals instance;
             return instance;
+        }
+
+        bool isReady() const
+        {
+            return d3d11_;
+        }
+
+        bool checkSenderExists(const char* name) const
+        {
+            unsigned int width, height; HANDLE handle; DWORD format; // unused
+            return sender_names_->CheckSender(name, width, height, handle, format);
         }
     };
 }

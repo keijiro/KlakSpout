@@ -41,7 +41,10 @@ namespace Klak.Spout
         {
             // Plugin lazy initialization
             if (_plugin == System.IntPtr.Zero)
+            {
                 _plugin = PluginEntry.CreateSender(name, source.width, source.height);
+                if (_plugin == System.IntPtr.Zero) return; // Spout may not be ready.
+            }
 
             // Shared texture lazy initialization
             if (_sharedTexture == null)
@@ -91,7 +94,7 @@ namespace Klak.Spout
         {
             if (_plugin != System.IntPtr.Zero)
             {
-                PluginEntry.DestroySharedObject(_plugin);
+                Util.IssuePluginEvent(PluginEntry.Event.Dispose, _plugin);
                 _plugin = System.IntPtr.Zero;
             }
 
@@ -105,7 +108,9 @@ namespace Klak.Spout
 
         void Update()
         {
-            PluginEntry.Poll();
+            // Update the plugin internal state.
+            if (_plugin != System.IntPtr.Zero)
+                Util.IssuePluginEvent(PluginEntry.Event.Update, _plugin);
 
             // Render texture mode update
             if (GetComponent<Camera>() == null && _sourceTexture != null)

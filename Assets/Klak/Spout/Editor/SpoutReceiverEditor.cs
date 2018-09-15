@@ -15,7 +15,7 @@ namespace Klak.Spout
         SerializedProperty _targetRenderer;
         SerializedProperty _targetMaterialProperty;
 
-        double _prevRepaintTime;
+        static double _prevRepaintTime;
 
         static class Labels
         {

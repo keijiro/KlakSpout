@@ -4,19 +4,17 @@
 
 namespace klakspout
 {
-    // Shared spout object handler class
+    // Shared Spout object handler class
+    // Not thread safe. The owner should care about it.
     class SharedObject final
     {
     public:
 
         // Object type
-        enum class Type { sender, receiver } type_;
-
-        // Object state
-        enum class State { initialized, active, released, destroyed } state_;
+        enum class Type { sender, receiver } const type_;
 
         // Object attributes
-        std::string name_;
+        const std::string name_;
         int width_, height_;
 
         // D3D11 objects
@@ -25,7 +23,8 @@ namespace klakspout
 
         // Constructor
         SharedObject(Type type, const string& name, int width = -1, int height = -1)
-            : type_(type), state_(State::initialized), name_(name), width_(width), height_(height)
+            : type_(type), name_(name), width_(width), height_(height),
+              d3d11_resource_(nullptr), d3d11_resource_view_(nullptr)
         {
             if (type_ == Type::sender)
                 DEBUG_LOG("Sender created (%s)", name_.c_str());
@@ -36,7 +35,7 @@ namespace klakspout
         // Destructor
         ~SharedObject()
         {
-            assert(state_ == State::destroyed);
+            releaseInternals();
 
             if (type_ == Type::sender)
                 DEBUG_LOG("Sender disposed (%s)", name_.c_str());
@@ -49,52 +48,57 @@ namespace klakspout
         SharedObject(SharedObject&) = delete;
         SharedObject& operator = (const SharedObject&) = delete;
 
-        // Check if a receiver is disconnected from a previously connected sender.
-        // Returns true if disconnected.
-        bool detectDisconnection() const
+        // Check if it's active.
+        bool isActive() const
         {
-            auto& g = Globals::get();
-
-            // Do nothing with senders and non-active receivers.
-            if (type_ == Type::sender || state_ != State::active) return false;
-
-            // Retrieve the sender information.
-            unsigned int width, height;
-            HANDLE handle;
-            DWORD format;
-            auto res = g.sender_names_->CheckSender(name_.c_str(), width, height, handle, format);
-
-            // Check if the dimensions/format have been changed.
-            return !res || width != width_ || height != height_;
+            return d3d11_resource_;
         }
 
-        // Update the internal state. This only can be called in the render thread.
-        void updateFromRenderThread()
+        // Try activating the object. Returns false when failed.
+        bool activate()
         {
-            if (state_ == State::initialized)
-            {
-                if (type_ == Type::sender)
-                {
-                    if (setupSender()) state_ = State::active;
-                }
-                else
-                {
-                    if (setupReceiver()) state_ = State::active;
-                }
-            }
-            else if (state_ == State::released)
-            {
-                releaseResources();
-                state_ = State::destroyed;
-            }
+            assert(d3d11_resource_ == nullptr && d3d11_resource_view_ == nullptr);
+            return type_ == Type::sender ? setupSender() : setupReceiver();
+        }
+
+        // Deactivate the object and release its internal resources.
+        void deactivate()
+        {
+            releaseInternals();
         }
 
     private:
+
+        // Release internal objects.
+        void releaseInternals()
+        {
+            auto& g = Globals::get();
+
+            // Senders should unregister their own name on destruction.
+            if (type_ == Type::sender && d3d11_resource_)
+                g.sender_names_->ReleaseSenderName(name_.c_str());
+
+            // Release D3D11 objects.
+            if (d3d11_resource_)
+            {
+                d3d11_resource_->Release();
+                d3d11_resource_ = nullptr;
+            }
+
+            if (d3d11_resource_view_)
+            {
+                d3d11_resource_view_->Release();
+                d3d11_resource_view_ = nullptr;
+            }
+        }
 
         // Set up as a sender.
         bool setupSender()
         {
             auto& g = Globals::get();
+
+            // Avoid name duplication.
+            if (g.checkSenderExists(name_.c_str())) return false;
 
             // Currently we only support RGBA32.
             const auto format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -118,6 +122,7 @@ namespace klakspout
             if (FAILED(res_d3d))
             {
                 d3d11_resource_->Release();
+                d3d11_resource_ = nullptr;
                 DEBUG_LOG("CreateShaderResourceView failed (%s:%x)", name_.c_str(), res_d3d);
                 return false;
             }
@@ -128,7 +133,9 @@ namespace klakspout
             if (!res_spout)
             {
                 d3d11_resource_view_->Release();
+                d3d11_resource_view_ = nullptr;
                 d3d11_resource_->Release();
+                d3d11_resource_ = nullptr;
                 DEBUG_LOG("CreateSender failed (%s)", name_.c_str());
                 return false;
             }
@@ -150,7 +157,8 @@ namespace klakspout
 
             if (!res_spout)
             {
-                DEBUG_LOG("CheckSender failed (%s)", name_.c_str());
+                // This happens really frequently. Avoid spamming the console.
+                // DEBUG_LOG("CheckSender failed (%s)", name_.c_str());
                 return false;
             }
 
@@ -173,31 +181,13 @@ namespace klakspout
             if (FAILED(res_d3d))
             {
                 d3d11_resource_->Release();
+                d3d11_resource_ = nullptr;
                 DEBUG_LOG("CreateShaderResourceView failed (%s:%x)", name_.c_str(), res_d3d);
                 return false;
             }
 
             DEBUG_LOG("Receiver activated (%s)", name_.c_str());
             return true;
-        }
-
-        void releaseResources()
-        {
-            auto& g = Globals::get();
-
-            // Senders should unregister their own name on destruction.
-            if (type_ == Type::sender) g.sender_names_->ReleaseSenderName(name_.c_str());
-
-            // Release D3D11 resources.
-            d3d11_resource_->Release();
-            d3d11_resource_view_->Release();
-
-            state_ = State::destroyed;
-
-            if (type_ == Type::sender)
-                DEBUG_LOG("Sender deactivated (%s)", name_.c_str());
-            else
-                DEBUG_LOG("Receiver deactivated (%s)", name_.c_str());
         }
     };
 }
