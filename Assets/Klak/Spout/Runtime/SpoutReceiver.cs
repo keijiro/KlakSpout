@@ -1,21 +1,30 @@
-// KlakSpout - Spout realtime video sharing plugin for Unity
+// KlakSpout - Spout video frame sharing plugin for Unity
 // https://github.com/keijiro/KlakSpout
+
 using UnityEngine;
 
 namespace Klak.Spout
 {
-    /// Spout receiver class
+    [ExecuteInEditMode]
     [AddComponentMenu("Klak/Spout/Spout Receiver")]
-    public class SpoutReceiver : MonoBehaviour
+    public sealed class SpoutReceiver : MonoBehaviour
     {
-        #region Editable properties
+        #region Source settings
 
-        [SerializeField] string _nameFilter;
+        [SerializeField] string _sourceName;
 
-        public string nameFilter {
-            get { return _nameFilter; }
-            set { _nameFilter = value; }
+        public string sourceName {
+            get { return _sourceName; }
+            set {
+                if (_sourceName == value) return;
+                _sourceName = value;
+                RequestReconnect();
+            }
         }
+
+        #endregion
+
+        #region Target settings
 
         [SerializeField] RenderTexture _targetTexture;
 
@@ -31,7 +40,7 @@ namespace Klak.Spout
             set { _targetRenderer = value; }
         }
 
-        [SerializeField] string _targetMaterialProperty;
+        [SerializeField] string _targetMaterialProperty = null;
 
         public string targetMaterialProperty {
             get { return _targetMaterialProperty; }
@@ -40,121 +49,163 @@ namespace Klak.Spout
 
         #endregion
 
-        #region Public property
+        #region Runtime properties
 
-        Texture2D _sharedTexture;
-        RenderTexture _fixedTexture;
+        RenderTexture _receivedTexture;
 
         public Texture receivedTexture {
-            get { return _targetTexture != null ? _targetTexture : _fixedTexture; }
+            get { return _targetTexture != null ? _targetTexture : _receivedTexture; }
         }
 
         #endregion
 
-        #region Private variables
+        #region Private members
 
-        System.IntPtr _receiver;
-        Material _fixupMaterial;
+        System.IntPtr _plugin;
+        Texture2D _sharedTexture;
+        Material _blitMaterial;
         MaterialPropertyBlock _propertyBlock;
 
-        // Search the texture list and create a receiver when found one.
-        void SearchAndCreateTexture()
+        #endregion
+
+        #region Internal members
+
+        internal void RequestReconnect()
         {
-            var name = PluginEntry.SearchSharedObjectNameString(_nameFilter);
-            if (name != null) _receiver = PluginEntry.CreateReceiver(name);
+            OnDisable();
         }
 
         #endregion
 
-        #region MonoBehaviour functions
+        #region MonoBehaviour implementation
 
-        void Start()
+        void OnDisable()
         {
-            _fixupMaterial = new Material(Shader.Find("Hidden/Spout/Fixup"));
-            _propertyBlock = new MaterialPropertyBlock();
+            if (_plugin != System.IntPtr.Zero)
+            {
+                Util.IssuePluginEvent(PluginEntry.Event.Dispose, _plugin);
+                _plugin = System.IntPtr.Zero;
+            }
 
-            // Initial search.
-            SearchAndCreateTexture();
+            Util.Destroy(_sharedTexture);
         }
 
         void OnDestroy()
         {
-            if (_receiver != System.IntPtr.Zero)
-            {
-                PluginEntry.DestroySharedObject(_receiver);
-                _receiver = System.IntPtr.Zero;
-            }
-
-            if (_sharedTexture != null)
-            {
-                Destroy(_sharedTexture);
-                _sharedTexture = null;
-            }
-
-            if (_fixedTexture != null)
-            {
-                Destroy(_fixedTexture);
-                _fixedTexture = null;
-            }
+            Util.Destroy(_blitMaterial);
+            Util.Destroy(_receivedTexture);
         }
 
         void Update()
         {
-            PluginEntry.Poll();
-
-            if (_receiver == System.IntPtr.Zero)
+            // Release the plugin instance when the previously established
+            // connection is now invalid.
+            if (_plugin != System.IntPtr.Zero && !PluginEntry.CheckValid(_plugin))
             {
-                // The receiver hasn't been set up yet; try to get one.
-                SearchAndCreateTexture();
+                Util.IssuePluginEvent(PluginEntry.Event.Dispose, _plugin);
+                _plugin = System.IntPtr.Zero;
             }
-            else
+
+            // Plugin lazy initialization
+            if (_plugin == System.IntPtr.Zero)
             {
-                // We've received textures via this receiver
-                // but now it's disconnected from the sender -> Destroy it.
-                if (PluginEntry.GetTexturePointer(_receiver) != System.IntPtr.Zero &&
-                    PluginEntry.DetectDisconnection(_receiver))
+                _plugin = PluginEntry.CreateReceiver(_sourceName);
+                if (_plugin == System.IntPtr.Zero) return; // Spout may not be ready.
+            }
+
+            Util.IssuePluginEvent(PluginEntry.Event.Update, _plugin);
+
+            // Texture information retrieval
+            var ptr = PluginEntry.GetTexturePointer(_plugin);
+            var width = PluginEntry.GetTextureWidth(_plugin);
+            var height = PluginEntry.GetTextureHeight(_plugin);
+
+            // Resource validity check
+            if (_sharedTexture != null)
+            {
+                if (ptr != _sharedTexture.GetNativeTexturePtr() ||
+                    width != _sharedTexture.width ||
+                    height != _sharedTexture.height)
                 {
-                    OnDestroy();
+                    // Not match: Destroy to get refreshed.
+                    Util.Destroy(_sharedTexture);
                 }
             }
 
-            if (_receiver != System.IntPtr.Zero)
+            // Shared texture lazy (re)initialization
+            if (_sharedTexture == null && ptr != System.IntPtr.Zero)
             {
-                if (_sharedTexture == null)
+                _sharedTexture = Texture2D.CreateExternalTexture(
+                    width, height, TextureFormat.ARGB32, false, false, ptr
+                );
+                _sharedTexture.hideFlags = HideFlags.DontSave;
+
+                // Destroy the previously allocated receiver texture to
+                // refresh specifications.
+                if (_receivedTexture == null) Util.Destroy(_receivedTexture);
+            }
+
+            // Texture format conversion with the blit shader
+            if (_sharedTexture != null)
+            {
+                // Blit shader lazy initialization
+                if (_blitMaterial == null)
                 {
-                    // Try to initialize the shared texture.
-                    var ptr = PluginEntry.GetTexturePointer(_receiver);
-                    if (ptr != System.IntPtr.Zero)
-                    {
-                        _sharedTexture = Texture2D.CreateExternalTexture(
-                            PluginEntry.GetTextureWidth(_receiver),
-                            PluginEntry.GetTextureHeight(_receiver),
-                            TextureFormat.ARGB32, false, false, ptr
-                        );
-                    }
+                    _blitMaterial = new Material(Shader.Find("Hidden/Spout/Blit"));
+                    _blitMaterial.hideFlags = HideFlags.DontSave;
+                }
+
+                if (_targetTexture != null)
+                {
+                    // Blit the shared texture to the target texture.
+                    Graphics.Blit(_sharedTexture, _targetTexture, _blitMaterial, 1);
                 }
                 else
                 {
-                    // Update external objects.
-                    if (_targetTexture != null)
+                    // Receiver texture lazy initialization
+                    if (_receivedTexture == null)
                     {
-                        Graphics.Blit(_sharedTexture, _targetTexture, _fixupMaterial, 1);
-                    }
-                    else
-                    {
-                        if (_fixedTexture == null)
-                            _fixedTexture = new RenderTexture(_sharedTexture.width, _sharedTexture.height, 0);
-                        Graphics.Blit(_sharedTexture, _fixedTexture, _fixupMaterial, 1);
+                        _receivedTexture = new RenderTexture
+                            (_sharedTexture.width, _sharedTexture.height, 0);
+                        _receivedTexture.hideFlags = HideFlags.DontSave;
                     }
 
-                    if (_targetRenderer != null)
-                    {
-                        _propertyBlock.SetTexture(_targetMaterialProperty, receivedTexture);
-                        _targetRenderer.SetPropertyBlock(_propertyBlock);
-                    }
+                    // Blit the shared texture to the receiver texture.
+                    Graphics.Blit(_sharedTexture, _receivedTexture, _blitMaterial, 1);
                 }
             }
+
+            // Renderer override
+            if (_targetRenderer != null && receivedTexture != null)
+            {
+                // Material property block lazy initialization
+                if (_propertyBlock == null)
+                    _propertyBlock = new MaterialPropertyBlock();
+
+                // Read-modify-write
+                _targetRenderer.GetPropertyBlock(_propertyBlock);
+                _propertyBlock.SetTexture(_targetMaterialProperty, receivedTexture);
+                _targetRenderer.SetPropertyBlock(_propertyBlock);
+            }
         }
+
+        #if UNITY_EDITOR
+
+        // Invoke update on repaint in edit mode. This is needed to update the
+        // shared texture without getting the object marked dirty.
+
+        void OnRenderObject()
+        {
+            if (Application.isPlaying) return;
+
+            // Graphic.Blit used in Update will change the current active RT,
+            // so let us back it up and restore after Update.
+            var activeRT = RenderTexture.active;
+            Update();
+            RenderTexture.active = activeRT;
+        }
+
+        #endif
 
         #endregion
     }

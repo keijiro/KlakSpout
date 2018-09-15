@@ -1,8 +1,10 @@
 #pragma once
 
 #include <cstdio>
+#include <cassert>
 #include <d3d11.h>
-#include "Spout/SpoutSDK.h"
+#include "Spout/SpoutDirectX.h"
+#include "Spout/SpoutSenderNames.h"
 
 // Debug logging macro
 #if defined(_DEBUG)
@@ -13,21 +15,24 @@
 
 namespace klakspout
 {
-    //
-    // A class for holding global variables
-    //
-    class Globals
+    // Singleton class used for storing global variables
+    class Globals final
     {
     public:
 
         ID3D11Device* d3d11_;
-        spoutDirectX* spout_;
-        spoutSenderNames* sender_names_;
+        std::unique_ptr<spoutDirectX> spout_;
+        std::unique_ptr<spoutSenderNames> sender_names_;
 
         static Globals& get()
         {
             static Globals instance;
             return instance;
+        }
+
+        bool isReady() const
+        {
+            return d3d11_;
         }
     };
 }

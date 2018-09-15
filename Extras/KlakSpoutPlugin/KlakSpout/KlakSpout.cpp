@@ -1,84 +1,100 @@
-#include "KlakSpoutGlobals.h"
 #include "KlakSpoutSharedObject.h"
-#include "Unity/IUnityInterface.h"
 #include "Unity/IUnityGraphics.h"
 #include "Unity/IUnityGraphicsD3D11.h"
-#include <list>
-#include <memory>
+#include <mutex>
 
 namespace
 {
     // Low-level native plugin interface
     IUnityInterfaces* unity_;
 
-    // Shared object list
-    typedef std::list<std::shared_ptr<klakspout::SharedObject>> SharedObjectList;
-    SharedObjectList shared_objects_;
+    // Temporary storage for shared Spout object list
+    std::set<std::string> shared_object_names_;
 
-    // Remove a given object from the list.
-    void remove_shared_object(klakspout::SharedObject* pobj)
-    {
-        shared_objects_.remove_if([pobj](auto & sp) { return sp.get() == pobj; });
-    }
+    // Local mutex object used to prevent race conditions between the main
+    // thread and the render thread. This should be locked at the following
+    // points:
+    // - OnRenderEvent (this is the only point called from the render thread)
+    // - Plugin function that calls SharedObject or Spout API functions.
+    std::mutex lock_;
 
-    // Device event callback
+    // Unity device event callback
     void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType event_type)
     {
-        auto & g = klakspout::Globals::get();
+        assert(unity_);
 
-        DEBUG_LOG("OnGraphicsDeviceEvent(%d)", event_type);
+        // Do nothing if it's not the D3D11 renderer.
+        if (unity_->Get<IUnityGraphics>()->GetRenderer() != kUnityGfxRendererD3D11) return;
 
-        if (event_type == kUnityGfxDeviceEventInitialize && !g.spout_)
+        DEBUG_LOG("OnGraphicsDeviceEvent (%d)", event_type);
+
+        auto& g = klakspout::Globals::get();
+
+        if (event_type == kUnityGfxDeviceEventInitialize)
         {
-            // Initialize the Spout globals.
-            g.spout_ = new spoutDirectX;
-            g.sender_names_ = new spoutSenderNames;
+            // Retrieve the D3D11 interface.
+            g.d3d11_ = unity_->Get<IUnityGraphicsD3D11>()->GetDevice();
+
+            // Initialize the Spout global objects.
+            g.spout_ = std::make_unique<spoutDirectX>();
+            g.sender_names_ = std::make_unique<spoutSenderNames>();
+
+            // Apply the max sender registry value.
+            DWORD max_senders;
+            if (g.spout_->ReadDwordFromRegistry(&max_senders, "Software\\Leading Edge\\Spout", "MaxSenders"))
+                g.sender_names_->SetMaxSenders(max_senders);
         }
-
-        if (event_type == kUnityGfxDeviceEventShutdown && g.spout_)
+        else if (event_type == kUnityGfxDeviceEventShutdown)
         {
-            // Release all the shared resources.
-            shared_objects_.clear();
+            // Invalidate the D3D11 interface.
+            g.d3d11_ = nullptr;
 
             // Finalize the Spout globals.
-            delete g.spout_;
-            delete g.sender_names_;
-            g.spout_ = nullptr;
-            g.sender_names_ = nullptr;
+            g.spout_.reset();
+            g.sender_names_.reset();
         }
     }
 
-    // Render event callback
-    void UNITY_INTERFACE_API OnRenderEvent(int event_id)
+    // Unity render event callbacks
+    void UNITY_INTERFACE_API OnRenderEvent(int event_id, void* data)
     {
-        // Update all the D3D11 resources. This has to be done in the render thread.
-        for (auto p : shared_objects_) p->updateResources();
+        // Do nothing if the D3D11 interface is not available. This only
+        // happens on Editor. It may leak some resoruces but we can't do
+        // anything about them.
+        if (!klakspout::Globals::get().isReady()) return;
+
+        std::lock_guard<std::mutex> guard(lock_);
+
+        auto* pobj = reinterpret_cast<klakspout::SharedObject*>(data);
+
+        if (event_id == 0) // Update event
+        {
+            if (!pobj->isActive()) pobj->activate();
+        }
+        else if (event_id == 1) // Dispose event
+        {
+            delete pobj;
+        }
     }
 }
 
 //
-// Low-level plugin interface functions
+// Low-level native plugin implementation
 //
 
 extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnityInterfaces* interfaces)
 {
-    auto & g = klakspout::Globals::get();
+    unity_ = interfaces;
 
-    // Open a new console on debug builds.
+    // Replace stdout with a new console for debugging.
     #if defined(_DEBUG)
     FILE * pConsole;
     AllocConsole();
     freopen_s(&pConsole, "CONOUT$", "wb", stdout);
     #endif
 
-    // Retrieve the interface pointers.
-    unity_ = interfaces;
-    g.d3d11_ = unity_->Get<IUnityGraphicsD3D11>()->GetDevice();
-
-    // Register the custom callback.
+    // Register the custom callback, then manually invoke the initialization event once.
     unity_->Get<IUnityGraphics>()->RegisterDeviceEventCallback(OnGraphicsDeviceEvent);
-
-    // Invoke the initialization event.
     OnGraphicsDeviceEvent(kUnityGfxDeviceEventInitialize);
 }
 
@@ -86,117 +102,73 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginUnload()
 {
     // Unregister the custom callback.
     unity_->Get<IUnityGraphics>()->UnregisterDeviceEventCallback(OnGraphicsDeviceEvent);
+
+    unity_ = nullptr;
 }
 
-extern "C" UnityRenderingEvent UNITY_INTERFACE_EXPORT GetRenderEventFunc()
+extern "C" UnityRenderingEventAndData UNITY_INTERFACE_EXPORT GetRenderEventFunc()
 {
     return OnRenderEvent;
 }
 
 //
-// Native plugin functions
+// Native plugin implementation
 //
 
 extern "C" void UNITY_INTERFACE_EXPORT * CreateSender(const char* name, int width, int height)
 {
-    auto pobj = new klakspout::SharedObject(klakspout::SharedObject::kSender, name, width, height);
-    shared_objects_.emplace_front(pobj);
-    return pobj;
+    if (!klakspout::Globals::get().isReady()) return nullptr;
+    return new klakspout::SharedObject(klakspout::SharedObject::Type::sender, name, width, height);
 }
 
 extern "C" void UNITY_INTERFACE_EXPORT * CreateReceiver(const char* name)
 {
-    auto pobj = new klakspout::SharedObject(klakspout::SharedObject::kReceiver, name);
-    shared_objects_.emplace_front(pobj);
-    return pobj;
-}
-
-extern "C" UNITY_INTERFACE_EXPORT void DestroySharedObject(void* ptr)
-{
-    remove_shared_object(reinterpret_cast<klakspout::SharedObject*>(ptr));
-}
-
-extern "C" bool UNITY_INTERFACE_EXPORT DetectDisconnection(void* ptr)
-{
-    return reinterpret_cast<klakspout::SharedObject*>(ptr)->detectDisconnection();
+    if (!klakspout::Globals::get().isReady()) return nullptr;
+    return new klakspout::SharedObject(klakspout::SharedObject::Type::receiver, name);
 }
 
 extern "C" void UNITY_INTERFACE_EXPORT * GetTexturePointer(void* ptr)
 {
-    return reinterpret_cast<klakspout::SharedObject*>(ptr)->d3d11_resource_view_;
+    return reinterpret_cast<const klakspout::SharedObject*>(ptr)->d3d11_resource_view_;
 }
 
 extern "C" int UNITY_INTERFACE_EXPORT GetTextureWidth(void* ptr)
 {
-    return reinterpret_cast<klakspout::SharedObject*>(ptr)->width_;
+    return reinterpret_cast<const klakspout::SharedObject*>(ptr)->width_;
 }
 
 extern "C" int UNITY_INTERFACE_EXPORT GetTextureHeight(void* ptr)
 {
-    return reinterpret_cast<klakspout::SharedObject*>(ptr)->height_;
+    return reinterpret_cast<const klakspout::SharedObject*>(ptr)->height_;
 }
 
-extern "C" int UNITY_INTERFACE_EXPORT CountSharedObjects()
+extern "C" int UNITY_INTERFACE_EXPORT CheckValid(void* ptr)
 {
-    return klakspout::Globals::get().sender_names_->GetSenderCount();
+    std::lock_guard<std::mutex> guard(lock_);
+    return reinterpret_cast<const klakspout::SharedObject*>(ptr)->isValid();
+}
+
+extern "C" int UNITY_INTERFACE_EXPORT ScanSharedObjects()
+{
+    auto& g = klakspout::Globals::get();
+    if (!g.isReady()) return 0;
+    std::lock_guard<std::mutex> guard(lock_);
+    g.sender_names_->GetSenderNames(&shared_object_names_);
+    return static_cast<int>(shared_object_names_.size());
 }
 
 extern "C" const void UNITY_INTERFACE_EXPORT * GetSharedObjectName(int index)
 {
-    auto & g = klakspout::Globals::get();
-
-    // Static string object used for storing a result.
-    static string temp;
-
-    // Retrieve all the sender names.
-    std::set<std::string> names;
-    g.sender_names_->GetSenderNames(&names);
-
-    // Return the n-th element.
     auto count = 0;
-    for (auto & name : names)
+    for (auto& name : shared_object_names_)
     {
         if (count++ == index)
         {
+            // Return the name via a static string object.
+            static std::string temp;
             temp = name;
             return temp.c_str();
         }
     }
-
-    return nullptr;
-}
-
-extern "C" const void UNITY_INTERFACE_EXPORT * SearchSharedObjectName(const char* keyword)
-{
-    auto & g = klakspout::Globals::get();
-
-    // Static string object used for storing a result.
-    static string temp;
-
-    // Retrieve all the sender names.
-    std::set<std::string> names;
-    g.sender_names_->GetSenderNames(&names);
-
-    // Do nothing if the name list is empty.
-    if (names.size() == 0) return nullptr;
-
-    // Return the first element if the keyword is empty.
-    if (keyword == nullptr || *keyword == 0)
-    {
-        temp = *names.begin();
-        return temp.c_str();
-    }
-
-    // Scan the name list.
-    for (auto & name : names)
-    {
-        if (name.find(keyword) != std::string::npos)
-        {
-            temp = name;
-            return temp.c_str();
-        }
-    }
-
-    // Nothing found.
     return nullptr;
 }
