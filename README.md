@@ -57,18 +57,20 @@ pipelines]; The render texture mode should be applied in case of using SRP.
 ![inspector](https://i.imgur.com/ZnqC6jr.png)
 
 The Spout Sender component runs in the **render texture mode** when it's
-independent from any camera. To publish frames in this mode, a [render texture]
-should be specified in the **Source Texture** property. The sender publishes
-content of the render texture every frame.
+independent from any camera. In this mode, the sender publishes content of a
+render texture that is specified in the **Source Texture** property. This
+render texture should be updated in some way -- by attaching to a camera as a
+target texture, by [custom render texture], etc.
 
 [render texture]: https://docs.unity3d.com/Manual/class-RenderTexture.html
+[custom render texture]: https://docs.unity3d.com/Manual/CustomRenderTextures.html
 
 ### Alpha channel support
 
-In most use-cases of Unity, alpha channel in rendered frames is not in use --
-it only contains garbage data. It's generally recommended to turn off the
-**Alpha Channel Support** option to prevent causing wrong effects on a receiver
-side.
+This controls if the sender includes alpha channel to published frames. In most
+use-cases of Unity, alpha channel in rendered frames is not in use; it only
+contains garbage data. It's generally recommended to turn off the **Alpha
+Channel Support** option to prevent causing wrong effects on a receiver side.
 
 Spout Receiver component
 ------------------------
@@ -112,15 +114,15 @@ Spout Manager class
 -------------------
 
 The **Spout Manager class** (`SpoutManager`) only provides a single
-functionality: Get a list of sender names that are currently available
-(`GetSourceNames`). This is useful to implement a sender selection UI that
-works runtime.
+functionality: Get a list of sender names that are currently available in the
+system (`GetSourceNames`). This is useful to implement a sender selection UI
+for run time use.
 
 ![gif](https://i.imgur.com/C4XUzLk.gif)
 
 Please check the [Source Selector example] for detailed use of this function.
 
-[Source Selector example](Assets/Test/SourceSelector.cs)
+[Source Selector example]: Assets/Test/SourceSelector.cs
 
 License
 -------
