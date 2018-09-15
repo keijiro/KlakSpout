@@ -3,7 +3,8 @@
 #include <cstdio>
 #include <cassert>
 #include <d3d11.h>
-#include "Spout/SpoutSDK.h"
+#include "Spout/SpoutDirectX.h"
+#include "Spout/SpoutSenderNames.h"
 
 // Debug logging macro
 #if defined(_DEBUG)

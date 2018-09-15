@@ -129,32 +129,15 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="KlakSpout.cpp" />
-    <ClCompile Include="Spout\SpoutCopy.cpp" />
     <ClCompile Include="Spout\SpoutDirectX.cpp" />
-    <ClCompile Include="Spout\SpoutGLDXinterop.cpp" />
-    <ClCompile Include="Spout\SpoutGLextensions.cpp" />
-    <ClCompile Include="Spout\SpoutMemoryShare.cpp" />
-    <ClCompile Include="Spout\SpoutReceiver.cpp" />
-    <ClCompile Include="Spout\SpoutSDK.cpp" />
-    <ClCompile Include="Spout\SpoutSender.cpp" />
-    <ClCompile Include="Spout\SpoutSenderMemory.cpp" />
     <ClCompile Include="Spout\SpoutSenderNames.cpp" />
     <ClCompile Include="Spout\SpoutSharedMemory.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="KlakSpoutGlobals.h" />
     <ClInclude Include="KlakSpoutSharedObject.h" />
-    <ClInclude Include="Spout\Spout.h" />
     <ClInclude Include="Spout\SpoutCommon.h" />
-    <ClInclude Include="Spout\SpoutCopy.h" />
     <ClInclude Include="Spout\SpoutDirectX.h" />
-    <ClInclude Include="Spout\SpoutGLDXinterop.h" />
-    <ClInclude Include="Spout\SpoutGLextensions.h" />
-    <ClInclude Include="Spout\SpoutMemoryShare.h" />
-    <ClInclude Include="Spout\SpoutReceiver.h" />
-    <ClInclude Include="Spout\SpoutSDK.h" />
-    <ClInclude Include="Spout\SpoutSender.h" />
-    <ClInclude Include="Spout\SpoutSenderMemory.h" />
     <ClInclude Include="Spout\SpoutSenderNames.h" />
     <ClInclude Include="Spout\SpoutSharedMemory.h" />
     <ClInclude Include="Unity\IUnityGraphics.h" />

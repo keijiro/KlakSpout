@@ -39,12 +39,10 @@ namespace
             g.spout_ = std::make_unique<spoutDirectX>();
             g.sender_names_ = std::make_unique<spoutSenderNames>();
 
-            // Set the maximum number of senders.
-            // This should be exposed to the C# side, but it's a little bit
-            // tricky as this setting is not allowed to modify after
-            // initialization. So we simply chose to increase it to 32
-            // (default is 10) as an ad-hoc workaround.
-            g.sender_names_->SetMaxSenders(32);
+            // Apply the max sender registry value.
+            DWORD max_senders;
+            if (g.spout_->ReadDwordFromRegistry(&max_senders, "Software\\Leading Edge\\Spout", "MaxSenders"))
+                g.sender_names_->SetMaxSenders(max_senders);
         }
         else if (event_type == kUnityGfxDeviceEventShutdown)
         {

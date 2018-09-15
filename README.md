@@ -122,6 +122,25 @@ Please check the [Source Selector example] for detailed use of this function.
 
 [Source Selector example](Assets/Test/SourceSelector.cs)
 
+Frequently Asked Questions
+--------------------------
+
+### Can't send/receive more than 10 sources
+
+See [issue #33] in the Spout SDK. You can download the SpoutSettings app from
+the thread that allows changing the maximum number of Spout senders.
+
+[issue #33]: https://github.com/leadedge/Spout2/issues/33
+
+### Spout vs NDI: Which one is better?
+
+The answer is simple: If you're going to use a single computer, use Spout. If
+you need connecting multiple computers, use NDI.
+
+Spout is a superior solution for local interoperation. It's faster, low latency,
+more memory efficient and better quality. It's recommended using Spout unless
+multiple computers are involved.
+
 License
 -------
 
