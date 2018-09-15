@@ -3,90 +3,124 @@ KlakSpout
 
 ![gif](http://i.imgur.com/LxjjcrY.gif)
 
-**KlakSpout** is a Unity plugin that allows sharing rendered frames with other
-applications with using the [Spout] protocol.
-
-The Spout protocol is supported by several frameworks (Processing,
-openFrameworks, etc.) and software packages (Resolume, AfterEffects, etc.).
-The plugin allows Unity to interoperate with them in real time without
-incurring much overhead.
+**KlakSpout** is a Unity plugin that allows sharing video frames with other
+applications using the [Spout] system.
 
 [Spout]: http://spout.zeal.co/
 
-System Requirements and Compatibilities
----------------------------------------
+Spout is a video sharing system for Windows that allows applications to share
+frames in real time without incurring significant performance overhead. It's
+supported by several applications (MadMapper, Resolume, etc.) and frameworks
+(Processing, openFrameworks, etc.). It works in a similar way to [Syphon] for
+Mac, and it's similarly useful for projection mapping and VJing.
 
-- KlakSpout requires Unity 2017.4 or later.
+[Syphon]: http://syphon.v002.info/
+
+System requirements
+-------------------
+
+- Unity 2017.4 or later.
 - KlakSpout only supports Direct3D 11 (DX11) graphics API mode. Other APIs
-  (DX9, DX12, OpenGL core, etc.) are not supported at the moment.
-
-Features
---------
-
-### Sending frames from a camera
-
-You can send rendered frames from a camera in a scene with attaching the
-**SpoutSender** component to it.
-
-### Receiving frames from other applications
-
-You can receive frames from other applications and store them into a render
-texture, or set them to a material property as an animating texture.
+  (DX9, DX12, OpenGL, etc.) are not supported at the moment.
 
 Installation
 ------------
 
-Download one of the unitypackage files from the [Releases] page and import it
-to a project.
+Download and import one of the unitypackage files from the [Releases] page.
 
 [Releases]: https://github.com/keijiro/KlakSpout/releases
 
-Component Reference
+Spout Sender component
+----------------------
+
+The **Spout Sender component** (`SpoutSender`) is used to send frames to other
+Spout compatible applications.
+
+There are two modes in Spout Sender:
+
+### Camera capture mode
+
+![inspector](https://i.imgur.com/2QL6G8P.png)
+
+The Spout Sender component runs in the **camera capture mode** when attached to
+a camera object. It automatically captures frames rendered by the camera and
+publish them via Spout. The dimensions of the frames are dependent on the
+screen/game view size.
+
+Note that the camera capture mode is not compatible with [scriptable render
+pipelines]; The render texture mode should be applied in case of using SRP.
+
+[scriptable render pipelines]: https://docs.unity3d.com/Manual/ScriptableRenderPipeline.html
+
+### Render texture mode
+
+![inspector](https://i.imgur.com/ZnqC6jr.png)
+
+The Spout Sender component runs in the **render texture mode** when it's
+independent from any camera. To publish frames in this mode, a [render texture]
+should be specified in the **Source Texture** property. The sender publishes
+content of the render texture every frame.
+
+[render texture]: https://docs.unity3d.com/Manual/class-RenderTexture.html
+
+### Alpha channel support
+
+In most use-cases of Unity, alpha channel in rendered frames is not in use --
+it only contains garbage data. It's generally recommended to turn off the
+**Alpha Channel Support** option to prevent causing wrong effects on a receiver
+side.
+
+Spout Receiver component
+------------------------
+
+![inspector](https://i.imgur.com/C3O1RDy.png)
+
+The **Spout Receiver component** (`SpoutReceiver`) is used to receive frames
+published by other Spout compatible applications.
+
+### Source Name property
+
+The Spout Receiver tries to connect to a sender which has a name specified in
+the **Source Name** property. Note that the search is done with exact match
+(case-sensitive). It can be manually edited with the text field, or selected
+from the drop-down labelled "Select" that shows currently available Spout
+senders.
+
+### Target Texture property
+
+The Spout Receiver updates a render texture specified in the **Target Texture**
+property every frame. Note that the Spout Receiver doesn't care about aspect
+ratio; The dimensions of the render texture should be manually adjusted to
+avoid stretching.
+
+### Target Renderer property
+
+When a renderer component (in most cases it may be a mesh renderer component)
+is specified in the **Target Renderer** property, the Spout Receiver sets the
+received frames to one of the texture properties of the material used in the
+renderer. This is a convenient way to display received frames when they're only
+used in a single instance of renderer.
+
+### Script interface
+
+The received frames are also accessible via the `receivedTexture` property of
+the `SpoutReceiver` class. Note that the `receivedTexture` object is
+destroyed/recreated when the settings (e.g. screen size) are changed. It's
+recommended updating the reference every frame.
+
+Spout Manager class
 -------------------
 
-### SpoutSender component
+The **Spout Manager class** (`SpoutManager`) only provides a single
+functionality: Get a list of sender names that are currently available
+(`GetSourceNames`). This is useful to implement a sender selection UI that
+works runtime.
 
-![inspector](http://i.imgur.com/6oYHWpu.png)
+![gif](https://i.imgur.com/C4XUzLk.gif)
 
-**SpoutSender** is a component for sending rendered frames to other
-Spout-compatible applications.
+Please check the [Source Selector example] for detailed use of this function.
 
-SpoutSender has only one property. **Clear Alpha** controls whether if contents
-of the alpha channel are to be shared or discarded. When it's set to true, it
-clears up the contents of the alpha channel with 1.0 (100% opacity). It's
-useful when the alpha channel doesn't have any particular use.
-
-### SpoutReceiver component
-
-![inspector](http://i.imgur.com/0BWmM8i.png)
-
-**SpoutReceiver** is a component for receiving frames sent from other
-Spout-compatible applications.
-
-**Name Filter** is used to select which Spout sender to connect to. The
-receiver only tries to connect to a sender that has the given string in its
-name. For instance, when Name Filter is set to "resolume", it doesn't connect
-to "Processing 1" nor "maxSender", but "resolumeOut". When Name Filter is kept
-empty, it tries to connect to the first found sender without name filtering.
-
-SpoutReceiver supports two ways of storing received frames. When a render
-texture is set to **Target Texture**, it updates the render texture with the
-received frames. When Target Texture is kept null, it automatically allocates
-a temporary render texture for storing frames. These render textures are
-accessible from scripts with the `sharedTexture` property.
-
-Received frames can be rendered with using material overriding. To override a
-material, set a renderer to **Target Renderer**, then select a property to be
-overridden from the drop-down list.
-
-Sender List Window
-------------------
-
-![Sender List](http://i.imgur.com/XbN7RvC.png)
-
-The **Spout Sender List** window is available from the menu "Window" -> "Spout"
--> "Spout Sender List". It shows the names of the senders that are currently
-available.
+[Source Selector example](Assets/Test/SourceSelector.cs)
 
 License
 -------
