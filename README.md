@@ -2,6 +2,7 @@ KlakSpout
 =========
 
 ![gif](http://i.imgur.com/LxjjcrY.gif)
+![screenshot](https://i.imgur.com/8ywrjLB.png)
 
 **KlakSpout** is a Unity plugin that allows sharing video frames with other
 applications using the [Spout] system.
