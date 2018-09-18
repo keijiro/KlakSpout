@@ -109,6 +109,7 @@ namespace Klak.Spout
             // Plugin lazy initialization
             if (_plugin == System.IntPtr.Zero)
             {
+                if (string.IsNullOrEmpty(_sourceName)) return;
                 _plugin = PluginEntry.CreateReceiver(_sourceName);
                 if (_plugin == System.IntPtr.Zero) return; // Spout may not be ready.
             }
