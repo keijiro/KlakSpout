@@ -67,7 +67,7 @@ namespace Klak.Spout
             _targetRenderer = serializedObject.FindProperty("_targetRenderer");
             _targetMaterialProperty = serializedObject.FindProperty("_targetMaterialProperty");
 
-           EditorApplication.update += CheckRepaint;
+            EditorApplication.update += CheckRepaint;
         }
 
         void OnDisable()

@@ -74,6 +74,9 @@ namespace Klak.Spout
         internal static int GetTextureHeight(System.IntPtr ptr)
         { return 0; }
 
+        internal static bool CheckValid(System.IntPtr ptr)
+        { return false; }
+
         internal static int ScanSharedObjects()
         { return 0; }
 
