@@ -118,13 +118,13 @@ extern "C" UnityRenderingEventAndData UNITY_INTERFACE_EXPORT GetRenderEventFunc(
 extern "C" void UNITY_INTERFACE_EXPORT * CreateSender(const char* name, int width, int height)
 {
     if (!klakspout::Globals::get().isReady()) return nullptr;
-    return new klakspout::SharedObject(klakspout::SharedObject::Type::sender, name, width, height);
+    return new klakspout::SharedObject(klakspout::SharedObject::Type::sender, name != nullptr ? name : "", width, height);
 }
 
 extern "C" void UNITY_INTERFACE_EXPORT * CreateReceiver(const char* name)
 {
     if (!klakspout::Globals::get().isReady()) return nullptr;
-    return new klakspout::SharedObject(klakspout::SharedObject::Type::receiver, name);
+    return new klakspout::SharedObject(klakspout::SharedObject::Type::receiver, name != nullptr ? name : "");
 }
 
 extern "C" void UNITY_INTERFACE_EXPORT * GetTexturePointer(void* ptr)
