@@ -8,7 +8,7 @@ using Klak.Spout;
 
 public class SourceSelector : MonoBehaviour
 {
-    [SerializeField] Dropdown _dropdown;
+    [SerializeField] Dropdown _dropdown = null;
 
     SpoutReceiver _receiver;
 

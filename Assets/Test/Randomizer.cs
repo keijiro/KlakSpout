@@ -4,7 +4,7 @@ using System.Collections;
 
 public class Randomizer : MonoBehaviour
 {
-    [SerializeField] GameObject[] _objects;
+    [SerializeField] GameObject[] _objects = null;
 
     IEnumerator Start()
     {
