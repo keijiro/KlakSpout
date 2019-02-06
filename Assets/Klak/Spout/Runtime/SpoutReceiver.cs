@@ -44,7 +44,7 @@ namespace Klak.Spout
 
         public string targetMaterialProperty {
             get { return _targetMaterialProperty; }
-            set { targetMaterialProperty = value; }
+            set { _targetMaterialProperty = value; }
         }
 
         #endregion
