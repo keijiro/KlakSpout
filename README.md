@@ -45,7 +45,7 @@ There are two modes in Spout Sender:
 
 The Spout Sender component runs in the **camera capture mode** when attached to
 a camera object. It automatically captures frames rendered by the camera and
-publish them via Spout. The dimensions of the frames are dependent on the
+publishes them via Spout. The dimensions of the frames are dependent on the
 screen/game view size.
 
 Note that the camera capture mode is not compatible with [scriptable render
@@ -69,7 +69,7 @@ target texture, by [custom render texture], etc.
 ### Alpha channel support
 
 This controls if the sender includes alpha channel to published frames. In most
-use-cases of Unity, alpha channel in rendered frames is not in use; it only
+use-cases of Unity, the alpha channel in rendered frames is not used and only
 contains garbage data. It's generally recommended to turn off the **Alpha
 Channel Support** option to prevent causing wrong effects on a receiver side.
 
@@ -93,7 +93,7 @@ senders.
 
 The Spout Receiver updates a render texture specified in the **Target Texture**
 property every frame. Note that the Spout Receiver doesn't care about aspect
-ratio; The dimensions of the render texture should be manually adjusted to
+ratio; the dimensions of the render texture should be manually adjusted to
 avoid stretching.
 
 ### Target Renderer property
@@ -102,21 +102,21 @@ When a renderer component (in most cases it may be a mesh renderer component)
 is specified in the **Target Renderer** property, the Spout Receiver sets the
 received frames to one of the texture properties of the material used in the
 renderer. This is a convenient way to display received frames when they're only
-used in a single instance of renderer.
+used in a single renderer instance.
 
 ### Script interface
 
 The received frames are also accessible via the `receivedTexture` property of
 the `SpoutReceiver` class. Note that the `receivedTexture` object is
 destroyed/recreated when the settings (e.g. screen size) are changed. It's
-recommended updating the reference every frame.
+recommended to update the reference every frame.
 
 Spout Manager class
 -------------------
 
-The **Spout Manager class** (`SpoutManager`) only provides a single
-functionality: Get a list of sender names that are currently available in the
-system (`GetSourceNames`). This is useful to implement a sender selection UI
+The **Spout Manager class** (`SpoutManager`) only has one function: getting the
+list of sender names that are currently available in the system
+(`GetSourceNames`). This is useful for implementing a sender selection UI
 for run time use.
 
 ![gif](https://i.imgur.com/C4XUzLk.gif)
