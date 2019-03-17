@@ -87,6 +87,68 @@ namespace klakspout
             releaseInternals();
         }
 
+		bool updateSenderSize(int width, int height)
+		{
+			width_ = width;
+			height_ = height;
+			auto& g = Globals::get();
+
+			if (d3d11_resource_)
+			{
+				d3d11_resource_->Release();
+				d3d11_resource_ = nullptr;
+			}
+
+			if (d3d11_resource_view_)
+			{
+				d3d11_resource_view_->Release();
+				d3d11_resource_view_ = nullptr;
+			}
+
+			// Currently we only support RGBA32.
+			const auto format = DXGI_FORMAT_R8G8B8A8_UNORM;
+
+			// Create a shared texture.
+			ID3D11Texture2D* texture;
+			HANDLE handle;
+			auto res_spout = g.spout_->CreateSharedDX11Texture(g.d3d11_, width_, height_, format, &texture, handle);
+
+			if (!res_spout)
+			{
+				DEBUG_LOG("CreateSharedDX11Texture failed (%s)", name_.c_str());
+				return false;
+			}
+
+			d3d11_resource_ = texture;
+
+			// Create a resource view for the shared texture.
+			auto res_d3d = g.d3d11_->CreateShaderResourceView(d3d11_resource_, nullptr, &d3d11_resource_view_);
+
+			if (FAILED(res_d3d))
+			{
+				d3d11_resource_->Release();
+				d3d11_resource_ = nullptr;
+				DEBUG_LOG("CreateShaderResourceView failed (%s:%x)", name_.c_str(), res_d3d);
+				return false;
+			}
+
+			// Update existing spout sender 
+			res_spout = g.sender_names_->UpdateSender(name_.c_str(), width_, height_, handle, format);
+
+			if (!res_spout)
+			{
+				d3d11_resource_view_->Release();
+				d3d11_resource_view_ = nullptr;
+				d3d11_resource_->Release();
+				d3d11_resource_ = nullptr;
+				DEBUG_LOG("updateSenderSize failed (%s)", name_.c_str());
+				return false;
+			}
+
+			DEBUG_LOG("Sender size updated (%s)", name_.c_str());
+			return true;
+		}
+
     private:
 
         // Release internal objects.

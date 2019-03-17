@@ -61,6 +61,16 @@ namespace Klak.Spout
                 }
             }
 
+            // Check for change in texture size
+            if (_sharedTexture != null) {
+                if (source.width != _sharedTexture.width || source.height != _sharedTexture.height)
+                {
+                    PluginEntry.UpdateSenderSize(_plugin, source.width, source.height);
+                    Util.Destroy(_sharedTexture);
+                    _sharedTexture = null;
+                }
+            }
+
             // Shared texture update
             if (_sharedTexture != null)
             {

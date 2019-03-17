@@ -26,6 +26,9 @@ namespace Klak.Spout
         internal static extern System.IntPtr CreateSender(string name, int width, int height);
 
         [DllImport("KlakSpout")]
+        internal static extern bool UpdateSenderSize(System.IntPtr ptr, int width, int height); 
+
+        [DllImport("KlakSpout")]
         internal static extern System.IntPtr CreateReceiver(string name);
 
         [DllImport("KlakSpout")]

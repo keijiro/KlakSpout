@@ -172,3 +172,8 @@ extern "C" const void UNITY_INTERFACE_EXPORT * GetSharedObjectName(int index)
     }
     return nullptr;
 }
+
+extern "C" bool UNITY_INTERFACE_EXPORT UpdateSenderSize(void* ptr, int width, int height)
+{
+	return reinterpret_cast<klakspout::SharedObject*>(ptr)->updateSenderSize(width, height);
+}
