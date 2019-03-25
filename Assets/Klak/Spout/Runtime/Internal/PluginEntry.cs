@@ -10,7 +10,7 @@ namespace Klak.Spout
     {
         internal enum Event { Update, Dispose }
 
-        #if UNITY_STANDALONE_WIN
+        #if UNITY_STANDALONE_WIN && !UNITY_EDITOR_OSX
 
         internal static bool IsAvailable {
             get {
