@@ -142,7 +142,7 @@ namespace Klak.Spout
 
                 // Destroy the previously allocated receiver texture to
                 // refresh specifications.
-                if (_receivedTexture == null) Util.Destroy(_receivedTexture);
+                Util.Destroy(_receivedTexture);
             }
 
             // Texture format conversion with the blit shader
