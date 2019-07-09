@@ -1,106 +1,99 @@
-// KlakSpout - Spout realtime video sharing plugin for Unity
+// KlakSpout - Spout video frame sharing plugin for Unity
 // https://github.com/keijiro/KlakSpout
+
 using UnityEngine;
 using UnityEditor;
-using System;
-using System.Collections.Generic;
 
 namespace Klak.Spout
 {
     [CanEditMultipleObjects]
     [CustomEditor(typeof(SpoutReceiver))]
-    public class SpoutReceiverEditor : Editor
+    sealed class SpoutReceiverEditor : Editor
     {
-        SerializedProperty _nameFilter;
+        SerializedProperty _sourceName;
         SerializedProperty _targetTexture;
         SerializedProperty _targetRenderer;
         SerializedProperty _targetMaterialProperty;
 
-        static GUIContent _labelProperty = new GUIContent("Property");
+        static double _prevRepaintTime;
 
-        string[] _propertyList; // cached property list
-        Shader _cachedShader;   // shader used to cache the list
-
-        // Retrieve shader from a target renderer.
-        Shader RetrieveTargetShader(UnityEngine.Object target)
+        static class Labels
         {
-            var renderer = target as Renderer;
-            if (renderer == null) return null;
-
-            var material = renderer.sharedMaterial;
-            if (material == null) return null;
-
-            return material.shader;
+            public static readonly GUIContent Property = new GUIContent("Property");
+            public static readonly GUIContent Select = new GUIContent("Select");
         }
 
-        // Cache properties of a given shader if it's
-        // different from a previously given one.
-        void CachePropertyList(Shader shader)
+        // Request receiver reconnection.
+        void RequestReconnect()
         {
-            if (_cachedShader == shader) return;
+            foreach (SpoutReceiver receiver in targets) receiver.RequestReconnect();
+        }
 
-            var temp = new List<string>();
+        // Check and request repaint with 0.1s interval.
+        void CheckRepaint()
+        {
+            var time = EditorApplication.timeSinceStartup;
+            if (time - _prevRepaintTime < 0.1) return;
+            UnityEditorInternal.InternalEditorUtility.RepaintAllViews();
+            _prevRepaintTime = time;
+        }
 
-            var count = ShaderUtil.GetPropertyCount(shader);
+        // Create and show the source name dropdown.
+        void ShowSourceNameDropdown(Rect rect)
+        {
+            var menu = new GenericMenu();
+            var count = PluginEntry.ScanSharedObjects();
             for (var i = 0; i < count; i++)
             {
-                var propType = ShaderUtil.GetPropertyType(shader, i);
-                if (propType == ShaderUtil.ShaderPropertyType.TexEnv)
-                    temp.Add(ShaderUtil.GetPropertyName(shader, i));
+                var name = PluginEntry.GetSharedObjectNameString(i);
+                menu.AddItem(new GUIContent(name), false, OnSelectSource, name);
             }
-
-            _propertyList = temp.ToArray();
-            _cachedShader = shader;
+            menu.DropDown(rect);
         }
 
-        // Material property drop-down list.
-        void ShowMaterialPropertyDropDown()
+        // Source name selection callback
+        void OnSelectSource(object name)
         {
-            // Try to retrieve the target shader.
-            var shader = RetrieveTargetShader(_targetRenderer.objectReferenceValue);
-
-            if (shader != null)
-            {
-                // Cache the property list of the target shader.
-                CachePropertyList(shader);
-
-                // If there are suitable candidates...
-                if (_propertyList.Length > 0)
-                {
-                    // Show the drop-down list.
-                    var index = Array.IndexOf(_propertyList, _targetMaterialProperty.stringValue);
-                    var newIndex = EditorGUILayout.Popup("Property", index, _propertyList);
-
-                    // Update the property if the selection was changed.
-                    if (index != newIndex)
-                        _targetMaterialProperty.stringValue = _propertyList[newIndex];
-                }
-                else
-                    _targetMaterialProperty.stringValue = ""; // reset on failure
-            }
-            else
-                _targetMaterialProperty.stringValue = ""; // reset on failure
+            serializedObject.Update();
+            _sourceName.stringValue = (string)name;
+            serializedObject.ApplyModifiedProperties();
+            RequestReconnect();
         }
 
         void OnEnable()
         {
-            _nameFilter = serializedObject.FindProperty("_nameFilter");
+            _sourceName = serializedObject.FindProperty("_sourceName");
             _targetTexture = serializedObject.FindProperty("_targetTexture");
             _targetRenderer = serializedObject.FindProperty("_targetRenderer");
             _targetMaterialProperty = serializedObject.FindProperty("_targetMaterialProperty");
+
+            EditorApplication.update += CheckRepaint;
         }
 
         void OnDisable()
         {
-            _propertyList = null;
-            _cachedShader = null;
+            EditorApplication.update -= CheckRepaint;
         }
 
         public override void OnInspectorGUI()
         {
             serializedObject.Update();
 
-            EditorGUILayout.PropertyField(_nameFilter);
+            EditorGUILayout.BeginHorizontal();
+
+            // Source name text field
+            EditorGUI.BeginChangeCheck();
+            EditorGUILayout.DelayedTextField(_sourceName);
+            if (EditorGUI.EndChangeCheck()) RequestReconnect();
+
+            // Source name dropdown
+            var rect = EditorGUILayout.GetControlRect(false, GUILayout.Width(60));
+            if (EditorGUI.DropdownButton(rect, Labels.Select, FocusType.Keyboard))
+                ShowSourceNameDropdown(rect);
+
+            EditorGUILayout.EndHorizontal();
+
+            // Target texture/renderer
             EditorGUILayout.PropertyField(_targetTexture);
             EditorGUILayout.PropertyField(_targetRenderer);
 
@@ -108,13 +101,13 @@ namespace Klak.Spout
 
             if (_targetRenderer.hasMultipleDifferentValues)
             {
-                // Show a simple text field if there are multiple values.
-                EditorGUILayout.PropertyField(_targetMaterialProperty, _labelProperty);
+                // Multiple renderers selected: Show a simple text field.
+                EditorGUILayout.PropertyField(_targetMaterialProperty, Labels.Property);
             }
             else if (_targetRenderer.objectReferenceValue != null)
             {
-                // Show the material property drop-down list.
-                ShowMaterialPropertyDropDown();
+                // Single renderer: Show the material property selection dropdown.
+                MaterialPropertySelector.DropdownList(_targetRenderer, _targetMaterialProperty);
             }
 
             EditorGUI.indentLevel--;
