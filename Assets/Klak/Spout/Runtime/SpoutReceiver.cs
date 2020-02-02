@@ -12,6 +12,7 @@ namespace Klak.Spout
         #region Source settings
 
         [SerializeField] string _sourceName;
+        
 
         public string sourceName {
             get { return _sourceName; }
@@ -45,6 +46,14 @@ namespace Klak.Spout
         public string targetMaterialProperty {
             get { return _targetMaterialProperty; }
             set { _targetMaterialProperty = value; }
+        }
+
+        [SerializeField]
+        bool _keepLastFrameOnTextureLost;
+        public bool keepLastFrameOnTextureLost
+        {
+            get { return _keepLastFrameOnTextureLost; }
+            set { _keepLastFrameOnTextureLost = value; }
         }
 
         #endregion
@@ -123,14 +132,19 @@ namespace Klak.Spout
             // Resource validity check
             if (_sharedTexture != null)
             {
-                if (ptr != _sharedTexture.GetNativeTexturePtr() ||
+                if (/*ptr != _sharedTexture.GetNativeTexturePtr() || */ //2019.3 : The pointer is always different, thus forcing to recreate a texture everytime.
                     width != _sharedTexture.width ||
                     height != _sharedTexture.height)
                 {
+
                     // Not match: Destroy to get refreshed.
                     Util.Destroy(_sharedTexture);
+
+                    //This is where we can detect sender disconnection
+                   if(!keepLastFrameOnTextureLost) Util.Destroy(_receivedTexture);
                 }
             }
+
 
             // Shared texture lazy (re)initialization
             if (_sharedTexture == null && ptr != System.IntPtr.Zero)
@@ -142,6 +156,13 @@ namespace Klak.Spout
 
                 // Destroy the previously allocated receiver texture to
                 // refresh specifications.
+
+                Util.Destroy(_receivedTexture);
+
+                //This is where we can detect sender connection
+                //
+            }else if(_sharedTexture == null && _receivedTexture != null && !_keepLastFrameOnTextureLost)
+            {
                 Util.Destroy(_receivedTexture);
             }
 
@@ -165,6 +186,7 @@ namespace Klak.Spout
                     // Receiver texture lazy initialization
                     if (_receivedTexture == null)
                     {
+                        Debug.Log("create received texture");
                         _receivedTexture = new RenderTexture
                             (_sharedTexture.width, _sharedTexture.height, 0);
                         _receivedTexture.hideFlags = HideFlags.DontSave;
@@ -176,7 +198,7 @@ namespace Klak.Spout
             }
 
             // Renderer override
-            if (_targetRenderer != null && receivedTexture != null)
+            if (_targetRenderer != null && (receivedTexture != null || !keepLastFrameOnTextureLost))
             {
                 // Material property block lazy initialization
                 if (_propertyBlock == null)
@@ -184,7 +206,8 @@ namespace Klak.Spout
 
                 // Read-modify-write
                 _targetRenderer.GetPropertyBlock(_propertyBlock);
-                _propertyBlock.SetTexture(_targetMaterialProperty, receivedTexture);
+                _propertyBlock.SetTexture(_targetMaterialProperty, receivedTexture != null?receivedTexture:Texture2D.blackTexture);
+
                 _targetRenderer.SetPropertyBlock(_propertyBlock);
             }
         }

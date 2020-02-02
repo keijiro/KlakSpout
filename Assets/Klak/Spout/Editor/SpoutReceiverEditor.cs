@@ -14,6 +14,7 @@ namespace Klak.Spout
         SerializedProperty _targetTexture;
         SerializedProperty _targetRenderer;
         SerializedProperty _targetMaterialProperty;
+        SerializedProperty _keepLastFrameOnTextureLost;
 
         static double _prevRepaintTime;
 
@@ -66,6 +67,7 @@ namespace Klak.Spout
             _targetTexture = serializedObject.FindProperty("_targetTexture");
             _targetRenderer = serializedObject.FindProperty("_targetRenderer");
             _targetMaterialProperty = serializedObject.FindProperty("_targetMaterialProperty");
+            _keepLastFrameOnTextureLost = serializedObject.FindProperty("_keepLastFrameOnTextureLost");
 
             EditorApplication.update += CheckRepaint;
         }
@@ -112,6 +114,8 @@ namespace Klak.Spout
 
             EditorGUI.indentLevel--;
 
+            EditorGUILayout.PropertyField(_keepLastFrameOnTextureLost);
+           
             serializedObject.ApplyModifiedProperties();
         }
     }
