@@ -74,7 +74,7 @@
 
 spoutSenderNames::spoutSenderNames() {
 	m_senders = new std::unordered_map<std::string, SpoutSharedMemory*>();
-	m_MaxSenders = 10; // default maximum number of senders
+	m_MaxSenders = 32; // default maximum number of senders
 }
 
 spoutSenderNames::~spoutSenderNames() {
