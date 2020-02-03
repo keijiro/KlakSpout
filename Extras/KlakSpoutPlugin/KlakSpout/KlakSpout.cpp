@@ -153,6 +153,7 @@ extern "C" int UNITY_INTERFACE_EXPORT ScanSharedObjects()
     auto& g = klakspout::Globals::get();
     if (!g.isReady()) return 0;
     std::lock_guard<std::mutex> guard(lock_);
+    g.sender_names_->GetSenderNames(&shared_object_names_);
     return static_cast<int>(g.sender_names_->GetSenderCount());
 }
 
