@@ -1,4 +1,4 @@
-// KlakSpout - Spout video frame sharing plugin for Unity
+﻿// KlakSpout - Spout video frame sharing plugin for Unity
 // https://github.com/keijiro/KlakSpout
 
 using UnityEngine;
@@ -10,6 +10,12 @@ namespace Klak.Spout
     public sealed class SpoutSender : MonoBehaviour
     {
         #region Source settings
+
+        [SerializeField] string _senderName;
+
+        string senderName => string.IsNullOrEmpty(_senderName) ? name : _senderName;
+        string currentSenderName;
+
 
         [SerializeField] RenderTexture _sourceTexture;
 
@@ -39,10 +45,17 @@ namespace Klak.Spout
 
         void SendRenderTexture(RenderTexture source)
         {
+            if ( currentSenderName != senderName)
+            {
+                DisposePlugin();
+            }
+
             // Plugin lazy initialization
             if (_plugin == System.IntPtr.Zero)
             {
-                _plugin = PluginEntry.CreateSender(name, source.width, source.height);
+                _plugin = PluginEntry.CreateSender(senderName, source.width, source.height);
+                currentSenderName = senderName;
+
                 if (_plugin == System.IntPtr.Zero) return; // Spout may not be ready.
             }
 
@@ -86,19 +99,26 @@ namespace Klak.Spout
             }
         }
 
+        void DisposePlugin()
+        {
+            if (_plugin != System.IntPtr.Zero)
+            {
+                Util.IssuePluginEvent(PluginEntry.Event.Dispose, _plugin);
+                _plugin = System.IntPtr.Zero;
+
+                currentSenderName = null;
+            }
+
+            Util.Destroy(_sharedTexture);
+        }
+
         #endregion
 
         #region MonoBehaviour implementation
 
         void OnDisable()
         {
-            if (_plugin != System.IntPtr.Zero)
-            {
-                Util.IssuePluginEvent(PluginEntry.Event.Dispose, _plugin);
-                _plugin = System.IntPtr.Zero;
-            }
-
-            Util.Destroy(_sharedTexture);
+            DisposePlugin();
         }
 
         void OnDestroy()
