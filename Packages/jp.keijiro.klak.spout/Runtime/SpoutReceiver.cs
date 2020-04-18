@@ -63,6 +63,7 @@ namespace Klak.Spout
 
         System.IntPtr _plugin;
         Texture2D _sharedTexture;
+        System.IntPtr _sharedTexturePointer;
         Material _blitMaterial;
         MaterialPropertyBlock _propertyBlock;
 
@@ -123,7 +124,7 @@ namespace Klak.Spout
             // Resource validity check
             if (_sharedTexture != null)
             {
-                if (ptr != _sharedTexture.GetNativeTexturePtr() ||
+                if (ptr != _sharedTexturePointer ||
                     width != _sharedTexture.width ||
                     height != _sharedTexture.height)
                 {
@@ -139,6 +140,7 @@ namespace Klak.Spout
                     width, height, TextureFormat.ARGB32, false, false, ptr
                 );
                 _sharedTexture.hideFlags = HideFlags.DontSave;
+                _sharedTexturePointer = ptr;
 
                 // Destroy the previously allocated receiver texture to
                 // refresh specifications.
