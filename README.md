@@ -49,7 +49,7 @@ publishes them via Spout. The dimensions of the frames are dependent on the
 screen/game view size.
 
 Note that the camera capture mode is not compatible with [scriptable render
-pipelines]; The render texture mode should be applied in case of using SRP.
+pipelines]. The render texture mode should be applied in case of using SRP.
 
 [scriptable render pipelines]: https://docs.unity3d.com/Manual/ScriptableRenderPipeline.html
 
