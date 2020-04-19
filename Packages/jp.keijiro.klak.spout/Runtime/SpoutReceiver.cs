@@ -130,6 +130,7 @@ namespace Klak.Spout
                 {
                     // Not match: Destroy to get refreshed.
                     Util.Destroy(_sharedTexture);
+                    _sharedTexture = null;
                 }
             }
 
@@ -145,6 +146,7 @@ namespace Klak.Spout
                 // Destroy the previously allocated receiver texture to
                 // refresh specifications.
                 Util.Destroy(_receivedTexture);
+                _receivedTexture = null;
             }
 
             // Texture format conversion with the blit shader
