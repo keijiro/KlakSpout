@@ -11,6 +11,8 @@ compile()
     $GXX -c -Wall -O2 -I. -IKlakSpout $SRC_FILE -o $OBJ_FILE
 }
 
+[ -d "build" ] || mkdir build
+
 compile KlakSpout/KlakSpout.cpp
 compile Spout/SpoutDirectX.cpp
 compile Spout/SpoutSenderNames.cpp

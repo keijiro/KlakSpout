@@ -1,0 +1,14 @@
+How to build the DLL
+--------------------
+
+For personal preference, I use WSL (Windows Subsystem for Linux) to build the
+plugin DLL binary. You can use Visual Studio instead, but you have to create a
+solution by yourself for that case.
+
+To build the DLL on the WSL environment, you have to install the MinGW cross
+compiler (mingw-w64).
+
+> sudo apt install mingw-w64
+
+Then, run the build.sh script. The dll file will be created in the "build"
+directory.
