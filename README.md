@@ -36,11 +36,6 @@ To the `scopedRegistries` section:
 
 ```
 {
-  "name": "Unity NuGet",
-  "url": "https://unitynuget-registry.azurewebsites.net",
-  "scopes": [ "org.nuget" ]
-},
-{
   "name": "Keijiro",
   "url": "https://registry.npmjs.com",
   "scopes": [ "jp.keijiro" ]
@@ -58,11 +53,6 @@ After changes, the manifest file should look like below:
 ```
 {
   "scopedRegistries": [
-    {
-      "name": "Unity NuGet",
-      "url": "https://unitynuget-registry.azurewebsites.net",
-      "scopes": [ "org.nuget" ]
-    },
     {
       "name": "Keijiro",
       "url": "https://registry.npmjs.com",
