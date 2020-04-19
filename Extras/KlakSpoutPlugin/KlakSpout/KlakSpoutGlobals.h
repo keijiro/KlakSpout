@@ -2,6 +2,7 @@
 
 #include <cstdio>
 #include <cassert>
+#include <memory>
 #include <d3d11.h>
 #include "Spout/SpoutDirectX.h"
 #include "Spout/SpoutSenderNames.h"
