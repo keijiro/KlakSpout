@@ -18,7 +18,5 @@ Desktop.ini
 /Logs
 /Temp
 
-# Visual Studio
-/Extras/**/.vs
-/Extras/**/x64
-/Extras/**/Win32
+# Plugin
+/Plugin/build
