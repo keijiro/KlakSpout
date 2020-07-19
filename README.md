@@ -156,7 +156,7 @@ for run time use.
 
 Please check the [Source Selector example] for detailed use of this function.
 
-[Source Selector example]: Assets/Test/SourceSelector.cs
+[Source Selector example]: Assets/Script/SourceSelector.cs
 
 Frequently Asked Questions
 --------------------------
