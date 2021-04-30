@@ -33,6 +33,20 @@ namespace Klak.Spout
             set { _targetTexture = value; }
         }
 
+        [SerializeField] Material _targetBlitMaterial = null;
+
+        public Material targetBlitMaterial {
+            get => _targetBlitMaterial;
+            set => _targetBlitMaterial = value;
+        }
+
+        [SerializeField] RenderTexture _targetBlittedTexture;
+
+        public RenderTexture targetBlittedTexture {
+            get { return _targetBlittedTexture; }
+            set { _targetBlittedTexture = value; }
+        }
+
         [SerializeField] Renderer _targetRenderer;
 
         public Renderer targetRenderer {
@@ -163,6 +177,11 @@ namespace Klak.Spout
                 {
                     // Blit the shared texture to the target texture.
                     Graphics.Blit(_sharedTexture, _targetTexture, _blitMaterial, 1);
+
+                    // Blit our custom texture
+                    if (_targetBlittedTexture != null && _targetBlitMaterial != null) {
+                        Graphics.Blit(_targetTexture, _targetBlittedTexture, _targetBlitMaterial);
+                    }
                 }
                 else
                 {

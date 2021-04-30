@@ -12,6 +12,8 @@ namespace Klak.Spout
     {
         SerializedProperty _sourceName;
         SerializedProperty _targetTexture;
+        SerializedProperty _targetBlitMaterial;
+        SerializedProperty _targetBlittedTexture;
         SerializedProperty _targetRenderer;
         SerializedProperty _targetMaterialProperty;
 
@@ -64,6 +66,8 @@ namespace Klak.Spout
         {
             _sourceName = serializedObject.FindProperty("_sourceName");
             _targetTexture = serializedObject.FindProperty("_targetTexture");
+            _targetBlitMaterial = serializedObject.FindProperty("_targetBlitMaterial");
+            _targetBlittedTexture = serializedObject.FindProperty("_targetBlittedTexture");
             _targetRenderer = serializedObject.FindProperty("_targetRenderer");
             _targetMaterialProperty = serializedObject.FindProperty("_targetMaterialProperty");
 
@@ -95,6 +99,8 @@ namespace Klak.Spout
 
             // Target texture/renderer
             EditorGUILayout.PropertyField(_targetTexture);
+            EditorGUILayout.PropertyField(_targetBlitMaterial);
+            EditorGUILayout.PropertyField(_targetBlittedTexture);
             EditorGUILayout.PropertyField(_targetRenderer);
 
             EditorGUI.indentLevel++;
