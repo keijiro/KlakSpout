@@ -34,5 +34,24 @@ namespace Klak.Spout
 
             _commandBuffer.Clear();
         }
+
+        private static int frameCount = 0;
+
+        // Calls a function in the native plugin once per frame,
+        // on the render thread
+        internal static void
+            UpdateWrapCache(int newFrame, CommandBuffer buffer)
+        {
+            if (frameCount <= newFrame)
+            {
+                frameCount = newFrame;
+
+                buffer.IssuePluginEventAndData(
+                    PluginEntry.GetRenderEventFunc(),
+                    (int)PluginEntry.Event.UpdateWrapCache,
+                    System.IntPtr.Zero // This event doesn't need data
+                );
+            }
+        }
     }
 }

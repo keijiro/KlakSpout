@@ -1,14 +1,16 @@
-How to build the DLL
---------------------
+Using CMake 3.15 or later.
 
-For personal preference, I use WSL (Windows Subsystem for Linux) to build the
-plugin DLL binary. You can use Visual Studio instead, but you have to create a
-solution by yourself for that case.
+For 32-bit build:
+cmake -S . -B build32 -DCMAKE_BUILD_TYPE=Release -A Win32
+cmake --build build32 --target install --config "Release"
 
-To build the DLL on the WSL environment, you have to install the MinGW cross
-compiler (mingw-w64).
+For 64-bit build:
+cmake -S . -B build64 -DCMAKE_BUILD_TYPE=Release -A x64
+cmake --build build64 --target install --config "Release"
 
-> sudo apt install mingw-w64
+These correctly set the build type (Release/Debug) and architecture (32/64 bit)
+for multi-configuration generators (ex Visual Studio) and single-configuration
+generators (ex Makefiles) alike.
 
-Then, run the build.sh script. The dll file will be created in the "build"
-directory.
+If using an IDE such as Visual Studio Code, make sure the desired configs are
+also set (often Debug is the default build type).
