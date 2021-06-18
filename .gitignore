@@ -21,4 +21,5 @@ Desktop.ini
 /Temp
 
 # Plugin
-/Plugin/build
+/Plugin/*/*.o
+/Plugin/*.dll

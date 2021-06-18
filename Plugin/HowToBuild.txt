@@ -10,5 +10,4 @@ compiler (mingw-w64).
 
 > sudo apt install mingw-w64
 
-Then, run the build.sh script. The dll file will be created in the "build"
-directory.
+Then, use Makefile to build the DLL file.
