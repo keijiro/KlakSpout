@@ -23,7 +23,7 @@ STRIP = $(TOOLCHAIN)-strip
 
 CC_FLAGS = -O2 -IKlakSpout -I. -std=c++14
 CC_FLAGS += -Wall -Wno-unknown-pragmas -Wno-conversion-null
-CC_FLAGS += -Wno-format -Wno-sign-compare
+CC_FLAGS += -Wno-format
 
 LD_FLAGS = -shared
 

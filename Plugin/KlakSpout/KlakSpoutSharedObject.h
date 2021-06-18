@@ -71,7 +71,7 @@ namespace klakspout
             HANDLE handle;
             DWORD format;
             auto found = g.sender_names_->CheckSender(name_.c_str(), width, height, handle, format);
-            return found && width_ == width && height_ == height;
+            return found && width_ == (int)width && height_ == (int)height;
         }
 
         // Try activating the object. Returns false when failed.
