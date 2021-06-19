@@ -36,11 +36,6 @@ To the `scopedRegistries` section:
 
 ```
 {
-  "name": "Unity NuGet",
-  "url": "https://unitynuget-registry.azurewebsites.net",
-  "scopes": [ "org.nuget" ]
-},
-{
   "name": "Keijiro",
   "url": "https://registry.npmjs.com",
   "scopes": [ "jp.keijiro" ]
@@ -50,7 +45,7 @@ To the `scopedRegistries` section:
 To the `dependencies` section:
 
 ```
-"jp.keijiro.klak.spout": "1.0.0"
+"jp.keijiro.klak.spout": "1.0.1"
 ```
 
 After changes, the manifest file should look like below:
@@ -59,18 +54,13 @@ After changes, the manifest file should look like below:
 {
   "scopedRegistries": [
     {
-      "name": "Unity NuGet",
-      "url": "https://unitynuget-registry.azurewebsites.net",
-      "scopes": [ "org.nuget" ]
-    },
-    {
       "name": "Keijiro",
       "url": "https://registry.npmjs.com",
       "scopes": [ "jp.keijiro" ]
     }
   ],
   "dependencies": {
-    "jp.keijiro.klak.spout": "1.0.0",
+    "jp.keijiro.klak.spout": "1.0.1",
 ...
 ```
 
@@ -166,7 +156,7 @@ for run time use.
 
 Please check the [Source Selector example] for detailed use of this function.
 
-[Source Selector example]: Assets/Test/SourceSelector.cs
+[Source Selector example]: Assets/Script/SourceSelector.cs
 
 Frequently Asked Questions
 --------------------------

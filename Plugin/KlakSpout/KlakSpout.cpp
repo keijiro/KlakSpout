@@ -41,7 +41,7 @@ namespace
 
             // Apply the max sender registry value.
             DWORD max_senders;
-            if (g.spout_->ReadDwordFromRegistry(&max_senders, "Software\\Leading Edge\\Spout", "MaxSenders"))
+            if (spoututils::ReadDwordFromRegistry(HKEY_CURRENT_USER, "Software\\Leading Edge\\Spout", "MaxSenders", &max_senders))
                 g.sender_names_->SetMaxSenders(max_senders);
         }
         else if (event_type == kUnityGfxDeviceEventShutdown)

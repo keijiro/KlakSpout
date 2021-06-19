@@ -22,7 +22,7 @@ namespace klakspout
         ID3D11ShaderResourceView* d3d11_resource_view_;
 
         // Constructor
-        SharedObject(Type type, const string& name, int width = -1, int height = -1)
+        SharedObject(Type type, const std::string& name, int width = -1, int height = -1)
             : type_(type), name_(name), width_(width), height_(height),
               d3d11_resource_(nullptr), d3d11_resource_view_(nullptr)
         {
@@ -71,7 +71,7 @@ namespace klakspout
             HANDLE handle;
             DWORD format;
             auto found = g.sender_names_->CheckSender(name_.c_str(), width, height, handle, format);
-            return found && width_ == width && height_ == height;
+            return found && width_ == (int)width && height_ == (int)height;
         }
 
         // Try activating the object. Returns false when failed.
@@ -127,7 +127,7 @@ namespace klakspout
             const auto format = DXGI_FORMAT_R8G8B8A8_UNORM;
 
             // Create a shared texture.
-            ID3D11Texture2D* texture;
+            ID3D11Texture2D* texture = nullptr;
             HANDLE handle;
             auto res_spout = g.spout_->CreateSharedDX11Texture(g.d3d11_, width_, height_, format, &texture, handle);
 
