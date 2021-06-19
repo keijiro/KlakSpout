@@ -127,7 +127,7 @@ namespace klakspout
             const auto format = DXGI_FORMAT_R8G8B8A8_UNORM;
 
             // Create a shared texture.
-            ID3D11Texture2D* texture;
+            ID3D11Texture2D* texture = nullptr;
             HANDLE handle;
             auto res_spout = g.spout_->CreateSharedDX11Texture(g.d3d11_, width_, height_, format, &texture, handle);
 
