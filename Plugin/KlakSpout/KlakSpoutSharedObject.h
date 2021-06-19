@@ -22,7 +22,7 @@ namespace klakspout
         ID3D11ShaderResourceView* d3d11_resource_view_;
 
         // Constructor
-        SharedObject(Type type, const string& name, int width = -1, int height = -1)
+        SharedObject(Type type, const std::string& name, int width = -1, int height = -1)
             : type_(type), name_(name), width_(width), height_(height),
               d3d11_resource_(nullptr), d3d11_resource_view_(nullptr)
         {
