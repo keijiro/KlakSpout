@@ -1,3 +1,9 @@
+// Unity Native Plugin API copyright © 2015 Unity Technologies ApS
+//
+// Licensed under the Unity Companion License for Unity - dependent projects--see[Unity Companion License](http://www.unity3d.com/legal/licenses/Unity_Companion_License).
+//
+// Unless expressly provided otherwise, the Software under this license is made available strictly on an “AS IS” BASIS WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED.Please review the license for details on these and other terms and conditions.
+
 #pragma once
 
 
@@ -59,7 +65,7 @@
 
 //     These events will be propagated to all plugins that implement void UnityRenderingExtEvent(UnityRenderingExtEventType event, void* data);
 
-enum UnityRenderingExtEventType
+typedef enum UnityRenderingExtEventType
 {
     kUnityRenderingExtEventSetStereoTarget,                 // issued during SetStereoTarget and carrying the current 'eye' index as parameter
     kUnityRenderingExtEventSetStereoEye,                    // issued during stereo rendering at the beginning of each eye's rendering loop. It carries the current 'eye' index as parameter
@@ -70,28 +76,32 @@ enum UnityRenderingExtEventType
                                                             //      when custom rendering is used - we need to let plugin handle this. It carries over
                                                             //      a UnityRenderingExtCustomBlitParams params = { X, source, dest, 0, 0 } ( X means it's irrelevant )
     kUnityRenderingExtEventCustomBlit,                      // issued by plugin to insert custom blits. It carries over UnityRenderingExtCustomBlitParams as param.
-    kUnityRenderingExtEventUpdateTextureBegin,              // issued to update a texture. It carries over UnityRenderingExtTextureUpdateParams
-    kUnityRenderingExtEventUpdateTextureEnd,                // issued to signal the plugin that the texture update has finished. It carries over the same UnityRenderingExtTextureUpdateParams as kUnityRenderingExtEventUpdateTextureBegin
+    kUnityRenderingExtEventUpdateTextureBegin,                                                  // Deprecated.
+    kUnityRenderingExtEventUpdateTextureEnd,                                                    // Deprecated.
+    kUnityRenderingExtEventUpdateTextureBeginV1 = kUnityRenderingExtEventUpdateTextureBegin,    // Deprecated. Issued to update a texture. It carries over UnityRenderingExtTextureUpdateParamsV1
+    kUnityRenderingExtEventUpdateTextureEndV1 = kUnityRenderingExtEventUpdateTextureEnd,        // Deprecated. Issued to signal the plugin that the texture update has finished. It carries over the same UnityRenderingExtTextureUpdateParamsV1 as kUnityRenderingExtEventUpdateTextureBeginV1
+    kUnityRenderingExtEventUpdateTextureBeginV2,                                                // Issued to update a texture. It carries over UnityRenderingExtTextureUpdateParamsV2
+    kUnityRenderingExtEventUpdateTextureEndV2,                                                  // Issued to signal the plugin that the texture update has finished. It carries over the same UnityRenderingExtTextureUpdateParamsV2 as kUnityRenderingExtEventUpdateTextureBeginV2
 
     // keep this last
     kUnityRenderingExtEventCount,
     kUnityRenderingExtUserEventsStart = kUnityRenderingExtEventCount
-};
+} UnityRenderingExtEventType;
 
 
-enum UnityRenderingExtCustomBlitCommands
+typedef enum UnityRenderingExtCustomBlitCommands
 {
     kUnityRenderingExtCustomBlitVRFlush,                    // This event is mostly used in multi GPU configurations ( SLI, etc ) in order to allow the plugin to flush all GPU's targets
 
     // keep this last
     kUnityRenderingExtCustomBlitCount,
     kUnityRenderingExtUserCustomBlitStart = kUnityRenderingExtCustomBlitCount
-};
+} UnityRenderingExtCustomBlitCommands;
 
 /*
     This will be propagated to all plugins implementing UnityRenderingExtQuery.
 */
-enum UnityRenderingExtQueryType
+typedef enum UnityRenderingExtQueryType
 {
     kUnityRenderingExtQueryOverrideViewport             = 1 << 0,           // The plugin handles setting up the viewport rects. Unity will skip its internal SetViewport calls
     kUnityRenderingExtQueryOverrideScissor              = 1 << 1,           // The plugin handles setting up the scissor rects. Unity will skip its internal SetScissor calls
@@ -100,10 +110,10 @@ enum UnityRenderingExtQueryType
                                                                             //      and it will clear the whole render target not just per-eye on demand.
     kUnityRenderingExtQueryKeepOriginalDoubleWideWidth_DEPRECATED  = 1 << 4,           // Instructs unity to keep the original double wide width. By default unity will try and have a power-of-two width for mip-mapping requirements.
     kUnityRenderingExtQueryRequestVRFlushCallback       = 1 << 5,           // Instructs unity to provide callbacks when the VR eye textures need flushing. Useful for multi GPU synchronization.
-};
+} UnityRenderingExtQueryType;
 
 
-enum UnityRenderingExtTextureFormat
+typedef enum UnityRenderingExtTextureFormat
 {
     kUnityRenderingExtFormatNone = 0, kUnityRenderingExtFormatFirst = kUnityRenderingExtFormatNone,
 
@@ -226,8 +236,8 @@ enum UnityRenderingExtTextureFormat
     kUnityRenderingExtFormatS8_Uint,
 
     // Compression formats
-    kUnityRenderingExtFormatRGB_DXT1_SRGB,
-    kUnityRenderingExtFormatRGB_DXT1_UNorm,
+    kUnityRenderingExtFormatRGBA_DXT1_SRGB,
+    kUnityRenderingExtFormatRGBA_DXT1_UNorm,
     kUnityRenderingExtFormatRGBA_DXT3_SRGB,
     kUnityRenderingExtFormatRGBA_DXT3_UNorm,
     kUnityRenderingExtFormatRGBA_DXT5_SRGB,
@@ -280,15 +290,23 @@ enum UnityRenderingExtTextureFormat
     kUnityRenderingExtFormatYUV2,
 
     // Automatic formats, back-end decides
-    kUnityRenderingExtFormatLDRAuto,
-    kUnityRenderingExtFormatHDRAuto,
     kUnityRenderingExtFormatDepthAuto,
     kUnityRenderingExtFormatShadowAuto,
-    kUnityRenderingExtFormatVideoAuto, kUnityRenderingExtFormatLast = kUnityRenderingExtFormatVideoAuto, // Remove?
-};
+    kUnityRenderingExtFormatVideoAuto,
+
+    // ASTC hdr profile
+    kUnityRenderingExtFormatRGBA_ASTC4X4_UFloat,
+    kUnityRenderingExtFormatRGBA_ASTC5X5_UFloat,
+    kUnityRenderingExtFormatRGBA_ASTC6X6_UFloat,
+    kUnityRenderingExtFormatRGBA_ASTC8X8_UFloat,
+    kUnityRenderingExtFormatRGBA_ASTC10X10_UFloat,
+    kUnityRenderingExtFormatRGBA_ASTC12X12_UFloat,
+
+    kUnityRenderingExtFormatLast = kUnityRenderingExtFormatRGBA_ASTC12X12_UFloat, // Remove?
+} UnityRenderingExtTextureFormat;
 
 
-struct UnityRenderingExtBeforeDrawCallParams
+typedef struct UnityRenderingExtBeforeDrawCallParams
 {
     void*   vertexShader;                           // bound vertex shader (platform dependent)
     void*   fragmentShader;                         // bound fragment shader (platform dependent)
@@ -296,19 +314,21 @@ struct UnityRenderingExtBeforeDrawCallParams
     void*   hullShader;                             // bound hull shader (platform dependent)
     void*   domainShader;                           // bound domain shader (platform dependent)
     int     eyeIndex;                               // the index of the current stereo "eye" being currently rendered.
-};
+} UnityRenderingExtBeforeDrawCallParams;
 
 
-struct UnityRenderingExtCustomBlitParams
+typedef struct UnityRenderingExtCustomBlitParams
 {
     UnityTextureID source;                          // source texture
     UnityRenderBuffer destination;                  // destination surface
     unsigned int command;                           // command for the custom blit - could be any UnityRenderingExtCustomBlitCommands command or custom ones.
     unsigned int commandParam;                      // custom parameters for the command
     unsigned int commandFlags;                      // custom flags for the command
-};
+} UnityRenderingExtCustomBlitParams;
 
-struct UnityRenderingExtTextureUpdateParams
+// Deprecated. Use UnityRenderingExtTextureUpdateParamsV2 and CommandBuffer.IssuePluginCustomTextureUpdateV2 instead.
+// Only supports DX11, GLES, Metal
+typedef struct UnityRenderingExtTextureUpdateParamsV1
 {
     void*        texData;                           // source data for the texture update. Must be set by the plugin
     unsigned int userData;                          // user defined data. Set by the plugin
@@ -318,7 +338,24 @@ struct UnityRenderingExtTextureUpdateParams
     unsigned int width;                             // width of the texture
     unsigned int height;                            // height of the texture
     unsigned int bpp;                               // texture bytes per pixel.
-};
+} UnityRenderingExtTextureUpdateParamsV1;
+
+// Deprecated. Use UnityRenderingExtTextureUpdateParamsV2 and CommandBuffer.IssuePluginCustomTextureUpdateV2 instead.
+// Only supports DX11, GLES, Metal
+typedef UnityRenderingExtTextureUpdateParamsV1 UnityRenderingExtTextureUpdateParams;
+
+// Type of the "data" parameter passed when callbacks registered with CommandBuffer.IssuePluginCustomTextureUpdateV2 are called.
+// Supports DX11, GLES, Metal, and Switch (also possibly PS4, PSVita in the future)
+typedef struct UnityRenderingExtTextureUpdateParamsV2
+{
+    void*        texData;                           // source data for the texture update. Must be set by the plugin
+    intptr_t     textureID;                         // texture ID of the texture to be updated.
+    unsigned int userData;                          // user defined data. Set by the plugin
+    UnityRenderingExtTextureFormat format;          // format of the texture to be updated
+    unsigned int width;                             // width of the texture
+    unsigned int height;                            // height of the texture
+    unsigned int bpp;                               // texture bytes per pixel.
+} UnityRenderingExtTextureUpdateParamsV2;
 
 
 // Certain Unity APIs (GL.IssuePluginEventAndData, CommandBuffer.IssuePluginEventAndData) can callback into native plugins.
