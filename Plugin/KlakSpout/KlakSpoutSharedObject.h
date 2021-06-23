@@ -17,8 +17,8 @@ namespace klakspout
         const std::string name_;
         int width_, height_;
 
-        // D3D11 objects
-        WRL::ComPtr<ID3D11Resource> d3d11_resource_;
+        // D3D11 texture object
+        WRL::ComPtr<ID3D11Resource> texture_;
 
         // Constructor
         SharedObject(Type type, const std::string& name, int width = -1, int height = -1)
@@ -49,7 +49,7 @@ namespace klakspout
         // Check if it's active.
         bool isActive() const
         {
-            return d3d11_resource_;
+            return texture_;
         }
 
         // Validate the internal resources.
@@ -75,7 +75,7 @@ namespace klakspout
         // Try activating the object. Returns false when failed.
         bool activate()
         {
-            assert(!d3d11_resource_);
+            assert(!texture_);
             return type_ == Type::sender ? setupSender() : setupReceiver();
         }
 
@@ -93,11 +93,11 @@ namespace klakspout
             auto& g = Globals::get();
 
             // Senders should unregister their own name on destruction.
-            if (type_ == Type::sender && d3d11_resource_)
+            if (type_ == Type::sender && texture_)
                 g.sender_names_->ReleaseSenderName(name_.c_str());
 
-            // Release D3D11 objects.
-            d3d11_resource_ = nullptr;
+            // Release the texture object.
+            texture_ = nullptr;
         }
 
         // Set up as a sender.
@@ -135,8 +135,6 @@ namespace klakspout
                 return false;
             }
 
-            d3d11_resource_ = texture;
-
             // Retrieve the texture handle.
             HANDLE handle;
             WRL::ComPtr<IDXGIResource> resource;
@@ -148,11 +146,11 @@ namespace klakspout
 
             if (!res_spout)
             {
-                d3d11_resource_ = nullptr;
                 DEBUG_LOG("CreateSender failed (%s)", name_.c_str());
                 return false;
             }
 
+            texture_ = texture;
             DEBUG_LOG("Sender activated (%s)", name_.c_str());
             return true;
         }
@@ -179,7 +177,7 @@ namespace klakspout
             height_ = h;
 
             // Start sharing the texture.
-            auto res_d3d = g.d3d11_->OpenSharedResource(handle, IID_PPV_ARGS(&d3d11_resource_));
+            auto res_d3d = g.d3d11_->OpenSharedResource(handle, IID_PPV_ARGS(&texture_));
 
             if (FAILED(res_d3d))
             {
