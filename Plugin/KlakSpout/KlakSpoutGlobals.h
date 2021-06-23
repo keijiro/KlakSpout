@@ -4,7 +4,7 @@
 #include <cassert>
 #include <memory>
 #include <d3d11.h>
-#include "Spout/SpoutDirectX.h"
+#include <wrl/client.h> // for ComPtr
 #include "Spout/SpoutSenderNames.h"
 
 // Debug logging macro
@@ -16,13 +16,15 @@
 
 namespace klakspout
 {
+    // Shorter namespace for ComPtr
+    namespace WRL = Microsoft::WRL;
+
     // Singleton class used for storing global variables
     class Globals final
     {
     public:
 
-        ID3D11Device* d3d11_;
-        std::unique_ptr<spoutDirectX> spout_;
+        WRL::ComPtr<ID3D11Device> d3d11_;
         std::unique_ptr<spoutSenderNames> sender_names_;
 
         static Globals& get()

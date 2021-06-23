@@ -7,14 +7,13 @@ TARGET = KlakSpout.dll
 DEST = ../Packages/jp.keijiro.klak.spout/Plugin/
 
 SRCS = KlakSpout/KlakSpout.cpp \
-       Spout/SpoutDirectX.cpp \
        Spout/SpoutSenderNames.cpp \
        Spout/SpoutSharedMemory.cpp \
        Spout/SpoutUtils.cpp
 
 OBJS = $(SRCS:.cpp=.o)
 
-LIBS = -Wl,--subsystem,windows -static -ldxgi -ld3d9 -ld3d11 -lshlwapi -luuid
+LIBS = -Wl,--subsystem,windows -static -ldxgi -ld3d11
 
 #
 # Compiler/linker options
@@ -25,8 +24,7 @@ CC = $(TOOLCHAIN)-g++-posix
 STRIP = $(TOOLCHAIN)-strip
 
 CC_FLAGS = -O2
-CC_FLAGS += -IKlakSpout -I. -std=c++14
-CC_FLAGS += -DWINVER=0x0A00 -D_WIN32_WINNT=0x0A00
+CC_FLAGS += -IKlakSpout -I. -std=c++14 -DMINI_SPOUTUTILS
 CC_FLAGS += -Wall -Wno-unknown-pragmas -Wno-conversion-null
 CC_FLAGS += -Wno-format -Wno-unused-function
 

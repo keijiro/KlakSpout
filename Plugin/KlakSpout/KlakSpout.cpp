@@ -36,13 +36,7 @@ namespace
             g.d3d11_ = unity_->Get<IUnityGraphicsD3D11>()->GetDevice();
 
             // Initialize the Spout global objects.
-            g.spout_ = std::make_unique<spoutDirectX>();
             g.sender_names_ = std::make_unique<spoutSenderNames>();
-
-            // Apply the max sender registry value.
-            DWORD max_senders;
-            if (spoututils::ReadDwordFromRegistry(HKEY_CURRENT_USER, "Software\\Leading Edge\\Spout", "MaxSenders", &max_senders))
-                g.sender_names_->SetMaxSenders(max_senders);
         }
         else if (event_type == kUnityGfxDeviceEventShutdown)
         {
@@ -50,7 +44,6 @@ namespace
             g.d3d11_ = nullptr;
 
             // Finalize the Spout globals.
-            g.spout_.reset();
             g.sender_names_.reset();
         }
     }
@@ -129,7 +122,7 @@ extern "C" void UNITY_INTERFACE_EXPORT * CreateReceiver(const char* name)
 
 extern "C" void UNITY_INTERFACE_EXPORT * GetTexturePointer(void* ptr)
 {
-    return reinterpret_cast<const klakspout::SharedObject*>(ptr)->d3d11_resource_view_;
+    return reinterpret_cast<const klakspout::SharedObject*>(ptr)->texture_.Get();
 }
 
 extern "C" int UNITY_INTERFACE_EXPORT GetTextureWidth(void* ptr)
