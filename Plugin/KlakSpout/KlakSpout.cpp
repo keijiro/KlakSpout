@@ -37,11 +37,6 @@ namespace
 
             // Initialize the Spout global objects.
             g.sender_names_ = std::make_unique<spoutSenderNames>();
-
-            // Apply the max sender registry value.
-            DWORD max_senders;
-            if (spoututils::ReadDwordFromRegistry(HKEY_CURRENT_USER, "Software\\Leading Edge\\Spout", "MaxSenders", &max_senders))
-                g.sender_names_->SetMaxSenders(max_senders);
         }
         else if (event_type == kUnityGfxDeviceEventShutdown)
         {
