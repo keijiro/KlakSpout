@@ -97,6 +97,7 @@ namespace spoututils {
 	// Console management
 	//
 
+#ifndef MINI_SPOUTUTILS
 	// Open console window.
 	// A console window opens without logs.
 	// Useful for debugging with console output.
@@ -142,6 +143,7 @@ namespace spoututils {
 	
 	// Set the current log level
 	void SetSpoutLogLevel(SpoutLogLevel level);
+#endif // MINI_SPOUTUTILS
 	
 	// General purpose log
 	void SpoutLog(const char* format, ...);
@@ -161,6 +163,7 @@ namespace spoututils {
 	// Fatal - always show log
 	void SpoutLogFatal(const char* format, ...);
 	
+#ifndef MINI_SPOUTUTILS
 	//
 	// MessageBox dialog
 	//
@@ -173,6 +176,7 @@ namespace spoututils {
 	// MessageBox dialog with standard arguments.
 	// Replaces an existing MessageBox call.
 	int SpoutMessageBox(HWND hwnd, LPCSTR message, LPCSTR caption, UINT uType, DWORD dwMilliseconds = 0);
+#endif // MINI_SPOUTUTILS
 	
 	//
 	// Registry utilities
@@ -204,6 +208,7 @@ namespace spoututils {
 	// Find subkey
 	bool FindSubKey(HKEY hKey, const char *subkey);
 
+#ifndef MINI_SPOUTUTILS
 	//
 	// Timing functions
 	//
@@ -214,6 +219,7 @@ namespace spoututils {
 	// Code console output can be enabled for quick timing tests.
 	double EndTiming();
 #endif
+#endif // MINI_SPOUTUTILS
 
 	// Get SDK version number string e.g. "2.007.000"
 	std::string GetSDKversion();
@@ -230,14 +236,18 @@ namespace spoututils {
 	{
 	
 		// Local functions
+#ifndef MINI_SPOUTUTILS
 		std::string _getLogPath();
+#endif // MINI_SPOUTUTILS
 		std::string _levelName(SpoutLogLevel level);
+#ifndef MINI_SPOUTUTILS
 		void _logtofile(bool append = false);
 
 		// Used internally for NVIDIA profile functions
 		bool GetNVIDIAmode(const char *command, int * mode);
 		bool SetNVIDIAmode(const char *command, int mode);
 		bool ExecuteProcess(char *path);
+#endif // MINI_SPOUTUTILS
 	}
 
 

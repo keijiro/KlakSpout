@@ -112,6 +112,7 @@ namespace spoututils {
 	// Console management
 	//
 
+#ifndef MINI_SPOUTUTILS
 	void OpenSpoutConsole()
 	{
 		// AllocConsole fails if the process already has a console
@@ -299,6 +300,7 @@ namespace spoututils {
 	{
 		CurrentLogLevel = level;
 	}
+#endif // MINI_SPOUTUTILS
 
 
 	void SpoutLog(const char* format, ...)
@@ -349,6 +351,7 @@ namespace spoututils {
 		va_end(args);
 	}
 	
+#ifndef MINI_SPOUTUTILS
 	//
 	// MessageBox
 	//
@@ -408,6 +411,7 @@ namespace spoututils {
 
 		return iRet;
 	}
+#endif // MINI_SPOUTUTILS
 
 	//
 	// Registry utilities
@@ -627,6 +631,7 @@ namespace spoututils {
 
 	}
 
+#ifndef MINI_SPOUTUTILS
 	// Timing utility functions
 	void StartTiming() {
 #ifdef USE_CHRONO
@@ -645,6 +650,7 @@ namespace spoututils {
 		return 0.0;
 #endif
 	}
+#endif // MINI_SPOUTUTILS
 
 	// Get SDK version number string e.g. "2.007.000"
 	std::string GetSDKversion()
@@ -716,6 +722,7 @@ namespace spoututils {
 	namespace
 	{
 			
+#ifndef MINI_SPOUTUTILS
 		// Get the default log file path
 		std::string _getLogPath()
 		{
@@ -747,6 +754,7 @@ namespace spoututils {
 			return logpath;
 
 		}
+#endif // MINI_SPOUTUTILS
 
 		// Get the name for the current log level
 		std::string _levelName(SpoutLogLevel level) {
@@ -768,6 +776,7 @@ namespace spoututils {
 			}
 		}
 
+#ifndef MINI_SPOUTUTILS
 		// Log to file with optional append 
 		void _logtofile(bool append)
 		{
@@ -934,6 +943,7 @@ namespace spoututils {
 
 			return bRet;
 		}
+#endif // MINI_SPOUTUTILS
 	} // end private namespace
 
 

@@ -13,7 +13,7 @@ SRCS = KlakSpout/KlakSpout.cpp \
 
 OBJS = $(SRCS:.cpp=.o)
 
-LIBS = -Wl,--subsystem,windows -static -ldxgi -ld3d11 -lshlwapi -luuid
+LIBS = -Wl,--subsystem,windows -static -ldxgi -ld3d11
 
 #
 # Compiler/linker options
@@ -25,7 +25,7 @@ STRIP = $(TOOLCHAIN)-strip
 
 CC_FLAGS = -O2
 CC_FLAGS += -IKlakSpout -I. -std=c++14
-CC_FLAGS += -DWINVER=0x0A00 -D_WIN32_WINNT=0x0A00
+CC_FLAGS += -DWINVER=0x0A00 -D_WIN32_WINNT=0x0A00 -DMINI_SPOUTUTILS
 CC_FLAGS += -Wall -Wno-unknown-pragmas -Wno-conversion-null
 CC_FLAGS += -Wno-format -Wno-unused-function
 
