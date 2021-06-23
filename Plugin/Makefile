@@ -7,14 +7,13 @@ TARGET = KlakSpout.dll
 DEST = ../Packages/jp.keijiro.klak.spout/Plugin/
 
 SRCS = KlakSpout/KlakSpout.cpp \
-       Spout/SpoutDirectX.cpp \
        Spout/SpoutSenderNames.cpp \
        Spout/SpoutSharedMemory.cpp \
        Spout/SpoutUtils.cpp
 
 OBJS = $(SRCS:.cpp=.o)
 
-LIBS = -Wl,--subsystem,windows -static -ldxgi -ld3d9 -ld3d11 -lshlwapi -luuid
+LIBS = -Wl,--subsystem,windows -static -ldxgi -ld3d11 -lshlwapi -luuid
 
 #
 # Compiler/linker options

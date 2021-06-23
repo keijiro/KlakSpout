@@ -36,7 +36,6 @@ namespace
             g.d3d11_ = unity_->Get<IUnityGraphicsD3D11>()->GetDevice();
 
             // Initialize the Spout global objects.
-            g.spout_ = std::make_unique<spoutDirectX>();
             g.sender_names_ = std::make_unique<spoutSenderNames>();
 
             // Apply the max sender registry value.
@@ -50,7 +49,6 @@ namespace
             g.d3d11_ = nullptr;
 
             // Finalize the Spout globals.
-            g.spout_.reset();
             g.sender_names_.reset();
         }
     }

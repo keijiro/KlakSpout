@@ -126,21 +126,38 @@ namespace klakspout
             // Currently we only support RGBA32.
             const auto format = DXGI_FORMAT_R8G8B8A8_UNORM;
 
-            // Create a shared texture.
-            ID3D11Texture2D* texture = nullptr;
-            HANDLE handle;
-            auto res_spout = g.spout_->CreateSharedDX11Texture(g.d3d11_, width_, height_, format, &texture, handle);
+            // Make a Spout-compatible texture description.
+            D3D11_TEXTURE2D_DESC desc = {};
+            desc.Format = format;
+            desc.Width = width_;
+            desc.Height = height_;
+            desc.MipLevels = 1;
+            desc.ArraySize = 1;
+            desc.SampleDesc.Count = 1;
+            desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+            desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
 
-            if (!res_spout)
+            // Create a shared texture.
+            ID3D11Texture2D* texture;
+            auto res_d3d = g.d3d11_->CreateTexture2D(&desc, nullptr, &texture);
+
+            if (FAILED(res_d3d))
             {
-                DEBUG_LOG("CreateSharedDX11Texture failed (%s)", name_.c_str());
+                DEBUG_LOG("CreateTexture2D failed (%s:%x)", name_.c_str(), res_d3d);
                 return false;
             }
 
             d3d11_resource_ = texture;
 
+            // Retrieve the texture handle.
+            HANDLE handle;
+            IDXGIResource* resource;
+            texture->QueryInterface(__uuidof(IDXGIResource), (void**)&resource);
+            resource->GetSharedHandle(&handle);
+            resource->Release();
+
             // Create a resource view for the shared texture.
-            auto res_d3d = g.d3d11_->CreateShaderResourceView(d3d11_resource_, nullptr, &d3d11_resource_view_);
+            res_d3d = g.d3d11_->CreateShaderResourceView(d3d11_resource_, nullptr, &d3d11_resource_view_);
 
             if (FAILED(res_d3d))
             {
@@ -151,7 +168,7 @@ namespace klakspout
             }
 
             // Create a Spout sender object for the shared texture.
-            res_spout = g.sender_names_->CreateSender(name_.c_str(), width_, height_, handle, format);
+            auto res_spout = g.sender_names_->CreateSender(name_.c_str(), width_, height_, handle, format);
 
             if (!res_spout)
             {
