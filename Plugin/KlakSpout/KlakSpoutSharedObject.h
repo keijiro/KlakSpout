@@ -18,13 +18,12 @@ namespace klakspout
         int width_, height_;
 
         // D3D11 objects
-        ID3D11Resource* d3d11_resource_;
-        ID3D11ShaderResourceView* d3d11_resource_view_;
+        WRL::ComPtr<ID3D11Resource> d3d11_resource_;
+        WRL::ComPtr<ID3D11ShaderResourceView> d3d11_resource_view_;
 
         // Constructor
         SharedObject(Type type, const std::string& name, int width = -1, int height = -1)
-            : type_(type), name_(name), width_(width), height_(height),
-              d3d11_resource_(nullptr), d3d11_resource_view_(nullptr)
+            : type_(type), name_(name), width_(width), height_(height)
         {
             if (type_ == Type::sender)
                 DEBUG_LOG("Sender created (%s)", name_.c_str());
@@ -77,7 +76,7 @@ namespace klakspout
         // Try activating the object. Returns false when failed.
         bool activate()
         {
-            assert(d3d11_resource_ == nullptr && d3d11_resource_view_ == nullptr);
+            assert(!d3d11_resource_ && !d3d11_resource_view_);
             return type_ == Type::sender ? setupSender() : setupReceiver();
         }
 
@@ -99,17 +98,8 @@ namespace klakspout
                 g.sender_names_->ReleaseSenderName(name_.c_str());
 
             // Release D3D11 objects.
-            if (d3d11_resource_)
-            {
-                d3d11_resource_->Release();
-                d3d11_resource_ = nullptr;
-            }
-
-            if (d3d11_resource_view_)
-            {
-                d3d11_resource_view_->Release();
-                d3d11_resource_view_ = nullptr;
-            }
+            d3d11_resource_ = nullptr;
+            d3d11_resource_view_ = nullptr;
         }
 
         // Set up as a sender.
@@ -138,7 +128,7 @@ namespace klakspout
             desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
 
             // Create a shared texture.
-            ID3D11Texture2D* texture;
+            WRL::ComPtr<ID3D11Texture2D> texture;
             auto res_d3d = g.d3d11_->CreateTexture2D(&desc, nullptr, &texture);
 
             if (FAILED(res_d3d))
@@ -151,17 +141,15 @@ namespace klakspout
 
             // Retrieve the texture handle.
             HANDLE handle;
-            IDXGIResource* resource;
-            texture->QueryInterface(__uuidof(IDXGIResource), (void**)&resource);
+            WRL::ComPtr<IDXGIResource> resource;
+            texture.As(&resource);
             resource->GetSharedHandle(&handle);
-            resource->Release();
 
             // Create a resource view for the shared texture.
-            res_d3d = g.d3d11_->CreateShaderResourceView(d3d11_resource_, nullptr, &d3d11_resource_view_);
+            res_d3d = g.d3d11_->CreateShaderResourceView(d3d11_resource_.Get(), nullptr, &d3d11_resource_view_);
 
             if (FAILED(res_d3d))
             {
-                d3d11_resource_->Release();
                 d3d11_resource_ = nullptr;
                 DEBUG_LOG("CreateShaderResourceView failed (%s:%x)", name_.c_str(), res_d3d);
                 return false;
@@ -172,9 +160,7 @@ namespace klakspout
 
             if (!res_spout)
             {
-                d3d11_resource_view_->Release();
                 d3d11_resource_view_ = nullptr;
-                d3d11_resource_->Release();
                 d3d11_resource_ = nullptr;
                 DEBUG_LOG("CreateSender failed (%s)", name_.c_str());
                 return false;
@@ -206,8 +192,7 @@ namespace klakspout
             height_ = h;
 
             // Start sharing the texture.
-            void** ptr = reinterpret_cast<void**>(&d3d11_resource_);
-            auto res_d3d = g.d3d11_->OpenSharedResource(handle, __uuidof(ID3D11Resource), ptr);
+            auto res_d3d = g.d3d11_->OpenSharedResource(handle, IID_PPV_ARGS(&d3d11_resource_));
 
             if (FAILED(res_d3d))
             {
@@ -216,11 +201,10 @@ namespace klakspout
             }
 
             // Create a resource view for the shared texture.
-            res_d3d = g.d3d11_->CreateShaderResourceView(d3d11_resource_, nullptr, &d3d11_resource_view_);
+            res_d3d = g.d3d11_->CreateShaderResourceView(d3d11_resource_.Get(), nullptr, &d3d11_resource_view_);
 
             if (FAILED(res_d3d))
             {
-                d3d11_resource_->Release();
                 d3d11_resource_ = nullptr;
                 DEBUG_LOG("CreateShaderResourceView failed (%s:%x)", name_.c_str(), res_d3d);
                 return false;
