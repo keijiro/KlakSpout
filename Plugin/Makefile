@@ -24,8 +24,7 @@ CC = $(TOOLCHAIN)-g++-posix
 STRIP = $(TOOLCHAIN)-strip
 
 CC_FLAGS = -O2
-CC_FLAGS += -IKlakSpout -I. -std=c++14
-CC_FLAGS += -DWINVER=0x0A00 -D_WIN32_WINNT=0x0A00 -DMINI_SPOUTUTILS
+CC_FLAGS += -IKlakSpout -I. -std=c++14 -DMINI_SPOUTUTILS
 CC_FLAGS += -Wall -Wno-unknown-pragmas -Wno-conversion-null
 CC_FLAGS += -Wno-format -Wno-unused-function
 
