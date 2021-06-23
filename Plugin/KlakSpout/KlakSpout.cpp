@@ -122,7 +122,7 @@ extern "C" void UNITY_INTERFACE_EXPORT * CreateReceiver(const char* name)
 
 extern "C" void UNITY_INTERFACE_EXPORT * GetTexturePointer(void* ptr)
 {
-    return reinterpret_cast<const klakspout::SharedObject*>(ptr)->d3d11_resource_view_.Get();
+    return reinterpret_cast<const klakspout::SharedObject*>(ptr)->d3d11_resource_.Get();
 }
 
 extern "C" int UNITY_INTERFACE_EXPORT GetTextureWidth(void* ptr)
