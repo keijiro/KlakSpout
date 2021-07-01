@@ -1,6 +1,7 @@
 #pragma once
 
 #include "KlakSpoutGlobals.h"
+#include <combaseapi.h>
 
 namespace klakspout
 {
@@ -16,13 +17,14 @@ namespace klakspout
         // Object attributes
         const std::string name_;
         int width_, height_;
+        DXGI_FORMAT format_;
 
-        // D3D11 objects
+        // For DX11
         ID3D11Resource* d3d11_resource_;
         ID3D11ShaderResourceView* d3d11_resource_view_;
 
         // Constructor
-        SharedObject(Type type, const string& name, int width = -1, int height = -1)
+        SharedObject(Type type, const std::string& name, int width = -1, int height = -1)
             : type_(type), name_(name), width_(width), height_(height),
               d3d11_resource_(nullptr), d3d11_resource_view_(nullptr)
         {
@@ -51,27 +53,7 @@ namespace klakspout
         // Check if it's active.
         bool isActive() const
         {
-            return d3d11_resource_;
-        }
-
-        // Validate the internal resources.
-        bool isValid() const
-        {
-            // Nothing to validate for senders.
-            if (type_ == Type::sender) return true;
-
-            // Non-active objects have nothing to validate.
-            if (!isActive()) return true;
-
-            auto& g = Globals::get();
-
-            // This must be an active receiver, so check if the connection to
-            // the sender is still valid.
-            unsigned int width, height;
-            HANDLE handle;
-            DWORD format;
-            auto found = g.sender_names_->CheckSender(name_.c_str(), width, height, handle, format);
-            return found && width_ == width && height_ == height;
+            return d3d11_resource_ != nullptr;
         }
 
         // Try activating the object. Returns false when failed.
@@ -79,6 +61,88 @@ namespace klakspout
         {
             assert(d3d11_resource_ == nullptr && d3d11_resource_view_ == nullptr);
             return type_ == Type::sender ? setupSender() : setupReceiver();
+        }
+
+        int sendTexture(void* tex)
+        {
+            auto& g = Globals::get();
+
+            if (g.renderer_ == klakspout::Globals::Renderer::DX11)
+            {
+                PROFILE_SCOPE(markerTextureCopy);
+
+                ID3D11Resource* source_resource = static_cast<ID3D11Resource*>(tex);
+
+                g.d3d11Context_->CopyResource(d3d11_resource_, source_resource);
+            }
+            else if (g.renderer_ == klakspout::Globals::Renderer::DX12)
+            {
+                ID3D12Resource* dx12_resource = static_cast<ID3D12Resource*>(tex);
+                ID3D11Resource* dx11_resource = getWrappedResource(dx12_resource, g.frame_count_);
+
+                {
+                    PROFILE_SCOPE(markerTextureWrappedActions);
+
+                    // Taken from spoutDX12::SendDX11Resource
+                    g.d3d11on12_->AcquireWrappedResources(&dx11_resource, 1);
+                    {
+                        PROFILE_SCOPE(markerTextureCopy);
+
+                        g.d3d11Context_->CopyResource(d3d11_resource_, dx11_resource);
+                    }
+                    g.d3d11on12_->ReleaseWrappedResources(&dx11_resource, 1);
+                }
+
+                // DX12 needs a flush call
+                {
+                    PROFILE_SCOPE(markerFlush);
+
+                    g.d3d11Context_->Flush();
+                }
+            }
+
+            return 1;
+        }
+
+        int receiveTexture(void* tex)
+        {
+            auto& g = Globals::get();
+
+            if (g.renderer_ == klakspout::Globals::Renderer::DX11)
+            {
+                PROFILE_SCOPE(markerTextureCopy);
+
+                ID3D11Resource* destination_resource = static_cast<ID3D11Resource*>(tex);
+
+                g.d3d11Context_->CopyResource(destination_resource, d3d11_resource_);
+            }
+            else if (g.renderer_ == klakspout::Globals::Renderer::DX12)
+            {
+                ID3D12Resource* dx12_resource = static_cast<ID3D12Resource*>(tex);
+                ID3D11Resource* dx11_resource = getWrappedResource(dx12_resource, g.frame_count_);
+
+                {
+                    PROFILE_SCOPE(markerTextureWrappedActions);
+
+                    // Taken from spoutDX12::ReceiveDX12Resource
+                    g.d3d11on12_->AcquireWrappedResources(&dx11_resource, 1);
+                    {
+                        PROFILE_SCOPE(markerTextureCopy);
+
+                        g.d3d11Context_->CopyResource(dx11_resource, d3d11_resource_);
+                    }
+                    g.d3d11on12_->ReleaseWrappedResources(&dx11_resource, 1);
+                }
+
+                // DX12 needs a flush call
+                {
+                    PROFILE_SCOPE(markerFlush);
+
+                    g.d3d11Context_->Flush();
+                }
+            }
+
+            return 1;
         }
 
         // Deactivate the object and release its internal resources.
@@ -112,6 +176,73 @@ namespace klakspout
             }
         }
 
+        // For DX12 only, not needed on DX11.
+        // Each resource that we use needs a DX11on12 representation.
+        //
+        // Creation of a DX11on12 representation is an expensive operation.
+        //
+        // There's no SharedObject to DX12 resource mapping possible because
+        // temporary RTs might be shared between multiple SharedObjects.
+        //
+        // For these reasons we use a cache.
+        ID3D11Resource* getWrappedResource(ID3D12Resource* dx12_resource, int frame_count)
+        {
+            ID3D11Resource* dx11_resource = nullptr;
+
+            auto& g = Globals::get();
+            auto it = g.wrap_cache_.find(dx12_resource);
+
+            // Taken from spoutDX12::WrapDX12Resource
+            if (it == g.wrap_cache_.end())
+            {
+                PROFILE_SCOPE(markerTextureWrap);
+
+                HRESULT hr = S_OK;
+
+                // A D3D11_RESOURCE_FLAGS structure that enables an application to override flags
+                // that would be inferred by the resource/heap properties.
+                // The D3D11_RESOURCE_FLAGS structure contains bind flags, misc flags, and CPU access flags.
+                D3D11_RESOURCE_FLAGS d3d11Flags = {};
+
+                // Create a wrapped resource to access our d3d12 resource from the d3d11 device
+                // Note: D3D12_RESOURCE_STATE variables are: 
+                //    (1) the state of the d3d12 resource when we acquire it
+                //        (when the d3d12 pipeline is finished with it and we are ready to use it in d3d11)
+                //    (2) when we are done using it in d3d11 (we release it back to d3d12) 
+                //        these are the states our resource will be transitioned into
+                hr = g.d3d11on12_->CreateWrappedResource(
+                    dx12_resource, // A pointer to an already-created D3D12 resource or heap.
+                    &d3d11Flags, 
+                    D3D12_RESOURCE_STATE_COMMON, // InState
+                    D3D12_RESOURCE_STATE_COMMON, // OutState
+                    IID_PPV_ARGS(&dx11_resource)
+                ); // Lazy
+
+                if (FAILED(hr)) {
+                    DEBUG_LOG("spoutDX12::WrapDX12Resource - failed to create wrapped resource (%d 0x%.7X)", LOWORD(hr), UINT(hr));
+                    return 0;
+                }
+
+                DX12WrapCacheEntry entry;
+                entry.wrapped_resource = dx11_resource;
+                entry.last_usage_frame = frame_count;
+                g.wrap_cache_.insert(std::make_pair(dx12_resource, entry));
+
+                DEBUG_LOG(
+                    "Added resource (%p), cache size: %d",
+                    dx12_resource,
+                    static_cast<int>(g.wrap_cache_.size())
+                );
+            }
+            else
+            {
+                dx11_resource = it->second.wrapped_resource;
+                it->second.last_usage_frame = frame_count;
+            }
+
+            return dx11_resource;
+        }
+
         // Set up as a sender.
         bool setupSender()
         {
@@ -119,17 +250,27 @@ namespace klakspout
 
             // Avoid name duplication.
             {
+                PROFILE_SCOPE(markerCheckSender);
+
                 unsigned int width, height; HANDLE handle; DWORD format; // unused
-                if (g.sender_names_->CheckSender(name_.c_str(), width, height, handle, format)) return false;
+                if (g.sender_names_->CheckSender(name_.c_str(), width, height, handle, format))
+                    return false;
             }
 
-            // Currently we only support RGBA32.
-            const auto format = DXGI_FORMAT_R8G8B8A8_UNORM;
+            // Currently we only support Unity's RGBA32 TextureFormat
+            // (which is the ARGB32 RenderTextureFormat).
+            format_ = DXGI_FORMAT_R8G8B8A8_UNORM;
+
+            ID3D11Texture2D* texture = nullptr;
+            HANDLE handle;
+            bool res_spout;
 
             // Create a shared texture.
-            ID3D11Texture2D* texture;
-            HANDLE handle;
-            auto res_spout = g.spout_->CreateSharedDX11Texture(g.d3d11_, width_, height_, format, &texture, handle);
+            {
+                PROFILE_SCOPE(markerCreateSharedTexture);
+
+                res_spout = g.spout_->CreateSharedDX11Texture(g.d3d11_, width_, height_, format_, &texture, handle);
+            }
 
             if (!res_spout)
             {
@@ -139,8 +280,14 @@ namespace klakspout
 
             d3d11_resource_ = texture;
 
+            HRESULT res_d3d = S_OK;
+
             // Create a resource view for the shared texture.
-            auto res_d3d = g.d3d11_->CreateShaderResourceView(d3d11_resource_, nullptr, &d3d11_resource_view_);
+            {
+                PROFILE_SCOPE(markerCreateSRV);
+
+                res_d3d = g.d3d11_->CreateShaderResourceView(d3d11_resource_, nullptr, &d3d11_resource_view_);
+            }
 
             if (FAILED(res_d3d))
             {
@@ -151,7 +298,11 @@ namespace klakspout
             }
 
             // Create a Spout sender object for the shared texture.
-            res_spout = g.sender_names_->CreateSender(name_.c_str(), width_, height_, handle, format);
+            {
+                PROFILE_SCOPE(markerCreateSender);
+
+                res_spout = g.sender_names_->CreateSender(name_.c_str(), width_, height_, handle, format_);
+            }
 
             if (!res_spout)
             {
@@ -176,7 +327,14 @@ namespace klakspout
             HANDLE handle;
             DWORD format;
             unsigned int w, h;
-            auto res_spout = g.sender_names_->CheckSender(name_.c_str(), w, h, handle, format);
+
+            bool res_spout = true;
+
+            {
+                PROFILE_SCOPE(markerCheckSender);
+
+                res_spout = g.sender_names_->CheckSender(name_.c_str(), w, h, handle, format);
+            }
 
             if (!res_spout)
             {
@@ -187,10 +345,16 @@ namespace klakspout
 
             width_ = w;
             height_ = h;
+            format_ = static_cast<DXGI_FORMAT>(format);
+            HRESULT res_d3d = S_OK;
 
             // Start sharing the texture.
-            void** ptr = reinterpret_cast<void**>(&d3d11_resource_);
-            auto res_d3d = g.d3d11_->OpenSharedResource(handle, __uuidof(ID3D11Resource), ptr);
+            {
+                PROFILE_SCOPE(markerOpenSharedTexture);
+
+                void** ptr = reinterpret_cast<void**>(&d3d11_resource_);
+                res_d3d = g.d3d11_->OpenSharedResource(handle, __uuidof(ID3D11Resource), ptr);
+            }
 
             if (FAILED(res_d3d))
             {
@@ -199,7 +363,11 @@ namespace klakspout
             }
 
             // Create a resource view for the shared texture.
-            res_d3d = g.d3d11_->CreateShaderResourceView(d3d11_resource_, nullptr, &d3d11_resource_view_);
+            {
+                PROFILE_SCOPE(markerCreateSRV);
+
+                res_d3d = g.d3d11_->CreateShaderResourceView(d3d11_resource_, nullptr, &d3d11_resource_view_);
+            }
 
             if (FAILED(res_d3d))
             {

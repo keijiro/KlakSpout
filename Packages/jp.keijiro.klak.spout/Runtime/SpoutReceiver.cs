@@ -2,6 +2,7 @@
 // https://github.com/keijiro/KlakSpout
 
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Klak.Spout
 {
@@ -62,8 +63,9 @@ namespace Klak.Spout
         #region Private members
 
         System.IntPtr _plugin;
-        Texture2D _sharedTexture;
-        System.IntPtr _sharedTexturePointer;
+        PluginEntry.SenderInfo _senderInfo = new PluginEntry.SenderInfo();
+        CommandBuffer _commandBuffer;
+        int _middlemanRenderTextureID;
         Material _blitMaterial;
         MaterialPropertyBlock _propertyBlock;
 
@@ -87,8 +89,6 @@ namespace Klak.Spout
                 Util.IssuePluginEvent(PluginEntry.Event.Dispose, _plugin);
                 _plugin = System.IntPtr.Zero;
             }
-
-            Util.Destroy(_sharedTexture);
         }
 
         void OnDestroy()
@@ -99,13 +99,29 @@ namespace Klak.Spout
 
         void Update()
         {
+            PluginEntry.GetSenderInfo(_sourceName, out _senderInfo);
+            
             // Release the plugin instance when the previously established
             // connection is now invalid.
-            if (_plugin != System.IntPtr.Zero && !PluginEntry.CheckValid(_plugin))
+            if (_plugin != System.IntPtr.Zero && PluginEntry.IsReady(_plugin))
             {
-                Util.IssuePluginEvent(PluginEntry.Event.Dispose, _plugin);
-                _plugin = System.IntPtr.Zero;
+                var width = PluginEntry.GetTextureWidth(_plugin);
+                var height = PluginEntry.GetTextureHeight(_plugin);
+                
+                if (!_senderInfo.exists || (width != _senderInfo.width || height != _senderInfo.height))
+                {
+                    Util.IssuePluginEvent(PluginEntry.Event.Dispose, _plugin);
+                    _plugin = System.IntPtr.Zero;
+                }
             }
+
+            var dxFormat = (PluginEntry.DXTextureFormat)_senderInfo.format;
+            var rtFormat = RenderTextureFormat.ARGB32;
+            var supportedFormat = PluginEntry.DXToRenderTextureFormat(dxFormat, ref rtFormat);
+
+            // Skip if no sender found with target name or if it has invalid parameters
+            if (!_senderInfo.exists || _senderInfo.width <= 0 || _senderInfo.height <= 0 || !supportedFormat)
+                return;
 
             // Plugin lazy initialization
             if (_plugin == System.IntPtr.Zero)
@@ -114,69 +130,12 @@ namespace Klak.Spout
                 if (_plugin == System.IntPtr.Zero) return; // Spout may not be ready.
             }
 
-            Util.IssuePluginEvent(PluginEntry.Event.Update, _plugin);
-
-            // Texture information retrieval
-            var ptr = PluginEntry.GetTexturePointer(_plugin);
-            var width = PluginEntry.GetTextureWidth(_plugin);
-            var height = PluginEntry.GetTextureHeight(_plugin);
-
-            // Resource validity check
-            if (_sharedTexture != null)
-            {
-                if (ptr != _sharedTexturePointer ||
-                    width != _sharedTexture.width ||
-                    height != _sharedTexture.height)
-                {
-                    // Not match: Destroy to get refreshed.
-                    Util.Destroy(_sharedTexture);
-                    _sharedTexture = null;
-                }
-            }
-
-            // Shared texture lazy (re)initialization
-            if (_sharedTexture == null && ptr != System.IntPtr.Zero)
-            {
-                _sharedTexture = Texture2D.CreateExternalTexture(
-                    width, height, TextureFormat.ARGB32, false, false, ptr
-                );
-                _sharedTexture.hideFlags = HideFlags.DontSave;
-                _sharedTexturePointer = ptr;
-
-                // Destroy the previously allocated receiver texture to
-                // refresh specifications.
-                Util.Destroy(_receivedTexture);
-                _receivedTexture = null;
-            }
-
             // Texture format conversion with the blit shader
-            if (_sharedTexture != null)
+            // Blit shader lazy initialization
+            if (_blitMaterial == null)
             {
-                // Blit shader lazy initialization
-                if (_blitMaterial == null)
-                {
-                    _blitMaterial = new Material(Shader.Find("Hidden/Spout/Blit"));
-                    _blitMaterial.hideFlags = HideFlags.DontSave;
-                }
-
-                if (_targetTexture != null)
-                {
-                    // Blit the shared texture to the target texture.
-                    Graphics.Blit(_sharedTexture, _targetTexture, _blitMaterial, 1);
-                }
-                else
-                {
-                    // Receiver texture lazy initialization
-                    if (_receivedTexture == null)
-                    {
-                        _receivedTexture = new RenderTexture
-                            (_sharedTexture.width, _sharedTexture.height, 0);
-                        _receivedTexture.hideFlags = HideFlags.DontSave;
-                    }
-
-                    // Blit the shared texture to the receiver texture.
-                    Graphics.Blit(_sharedTexture, _receivedTexture, _blitMaterial, 1);
-                }
+                _blitMaterial = new Material(Shader.Find("Hidden/Spout/Blit"));
+                _blitMaterial.hideFlags = HideFlags.DontSave;
             }
 
             // Renderer override
@@ -191,6 +150,72 @@ namespace Klak.Spout
                 _propertyBlock.SetTexture(_targetMaterialProperty, receivedTexture);
                 _targetRenderer.SetPropertyBlock(_propertyBlock);
             }
+
+            // Commandbuffer lazy initialization
+            if (_commandBuffer == null)
+            {
+                _commandBuffer = new CommandBuffer();
+                _commandBuffer.name = name;
+
+                _middlemanRenderTextureID = Shader.PropertyToID("_SpoutReceiverRT");
+            }
+
+            Util.UpdateWrapCache(Time.frameCount, _commandBuffer);
+
+            _commandBuffer.GetTemporaryRT(
+                _middlemanRenderTextureID, _senderInfo.width, _senderInfo.height, 0,
+                FilterMode.Point, rtFormat,
+                RenderTextureReadWrite.Linear // DX shared textures are always linear
+            );
+
+            // Set target sender on the native plugin side.
+            _commandBuffer.IssuePluginEventAndData(
+                PluginEntry.GetRenderEventFunc(),
+                (int)PluginEntry.Event.SetTargetObject,
+                _plugin
+            );
+
+            // Performs CopyTexture of the DX shared texture to the middleman RT.
+            // On DX12, the middleman RT is first wrapped into a DX11 texture,
+            // since DX shared textures are DX11/DX9 textures that we interface with
+            // using the D3D11on12 feature.
+            //
+            // IssuePluginCustomBlit is used instead of IssuePluginEventAndData as
+            // there's no other method to pass a temporary RT into the native side.
+            // If we had a pointer to the temporary RT's native texture then
+            // IssuePluginEventAndData could have been used.
+            _commandBuffer.IssuePluginCustomBlit(
+                PluginEntry.GetCustomBlitFunc(),
+                (int)PluginEntry.BlitCommand.Receive,
+                _middlemanRenderTextureID,
+                BuiltinRenderTextureType.CurrentActive, // Actually unused on the native plugin side
+                0,
+                0
+            );
+
+            if (_targetTexture != null)
+            {
+                // Blit the middleman RT to the target texture.
+                _commandBuffer.Blit(_middlemanRenderTextureID, _targetTexture, _blitMaterial, 1);
+            }
+            else
+            {
+                // Receiver texture lazy initialization
+                if (_receivedTexture == null)
+                {
+                    _receivedTexture = new RenderTexture(_senderInfo.width, _senderInfo.height, 0);
+                    _receivedTexture.hideFlags = HideFlags.DontSave;
+                }
+
+                // Blit the middleman RT to the receiver texture.
+                _commandBuffer.Blit(_middlemanRenderTextureID, _receivedTexture, _blitMaterial, 1);
+            }
+
+            _commandBuffer.ReleaseTemporaryRT(_middlemanRenderTextureID);
+
+            // Schedule to run on the render thread.
+            Graphics.ExecuteCommandBuffer(_commandBuffer);
+            _commandBuffer.Clear();
         }
 
         #if UNITY_EDITOR
