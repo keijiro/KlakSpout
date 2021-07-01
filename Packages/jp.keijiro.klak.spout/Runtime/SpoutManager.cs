@@ -1,32 +1,33 @@
-// KlakSpout - Spout video frame sharing plugin for Unity
-// https://github.com/keijiro/KlakSpout
+using System.Runtime.InteropServices;
+using IntPtr = System.IntPtr;
 
-using UnityEngine;
-using System.Collections.Generic;
+namespace Klak.Spout {
 
-namespace Klak.Spout
+public static class SpoutManager
 {
-    public static class SpoutManager
+    //
+    // GetSourceNames - Enumerates names of all available Spout sources
+    //
+    // This method invokes GC memory allocations every time, so it's
+    // recommended to cache the results for frequent use.
+    //
+    public static string[] GetSourceNames()
     {
-        // Scan available Spout sources and return their names via a newly
-        // allocated string array.
-        public static string[] GetSourceNames()
+        // Retrieve an array of string pointers from the plugin.
+        IntPtr[] pointers;
+        int count;
+        Plugin.GetSenderNames(out pointers, out count);
+
+        // Convert them into managed strings.
+        var names = new string[count];
+        for (var i = 0; i < count; i++)
         {
-            var count = PluginEntry.ScanSharedObjects();
-            var names = new string [count];
-            for (var i = 0; i < count; i++)
-                names[i] = PluginEntry.GetSharedObjectNameString(i);
-            return names;
+            names[i] = Marshal.PtrToStringAnsi(pointers[i]);
+            Marshal.FreeCoTaskMem(pointers[i]);
         }
 
-        // Scan available Spout sources and store their names into the given
-        // collection object.
-        public static void GetSourceNames(ICollection<string> store)
-        {
-            store.Clear();
-            var count = PluginEntry.ScanSharedObjects();
-            for (var i = 0; i < count; i++)
-                store.Add(PluginEntry.GetSharedObjectNameString(i));
-        }
+        return names;
     }
 }
+
+} // namespace Klak.Spout

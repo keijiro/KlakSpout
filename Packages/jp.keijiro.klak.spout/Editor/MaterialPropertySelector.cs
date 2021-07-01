@@ -1,90 +1,85 @@
-// KlakSpout - Spout video frame sharing plugin for Unity
-// https://github.com/keijiro/KlakSpout
-
 using UnityEngine;
 using UnityEditor;
-using System;
-using System.Collections.Generic;
+using System.Linq;
 
-namespace Klak.Spout
+namespace Klak.Spout.Editor {
+
+static class MaterialPropertySelector
 {
-    static class MaterialPropertySelector
+    #region Public method
+
+    // Material property dropdown list
+    public static void DropdownList
+      (SerializedProperty rendererProperty,
+       SerializedProperty materialProperty)
     {
-        #region Public method
+        var shader = GetShaderFromRenderer(rendererProperty);
 
-        // Material property drop-down list
-        public static void DropdownList(
-            SerializedProperty rendererProperty,
-            SerializedProperty materialProperty
-        )
+        // Abandon the current value if there is no shader assignment.
+        if (shader == null)
         {
-            // Try retrieving the target shader.
-            var shader = RetrieveTargetShader(rendererProperty);
-
-            // Abandon the current value if it failed to get a shader.
-            if (shader == null)
-            {
-                materialProperty.stringValue = "";
-                return;
-            }
-
-            // Cache property names found in the target shader.
-            CachePropertyNames(shader);
-
-            // Abandon the current value if there is no property candidate.
-            if (_propertyNames.Length == 0)
-            {
-                materialProperty.stringValue = "";
-                return;
-            }
-
-            // Show the dropdown list.
-            var index = Array.IndexOf(_propertyNames, materialProperty.stringValue);
-            var newIndex = EditorGUILayout.Popup("Property", index, _propertyNames);
-
-            // Update the serialized property if the selection was changed.
-            if (index != newIndex) materialProperty.stringValue = _propertyNames[newIndex];
+            materialProperty.stringValue = "";
+            return;
         }
 
-        #endregion
+        var names = CachePropertyNames(shader);
 
-        #region Private members
-
-        static string[] _propertyNames; // Property name list
-        static Shader _cachedShader;    // Shader used to cache the name list
-
-        // Retrieve a shader from a given renderer.
-        static Shader RetrieveTargetShader(SerializedProperty rendererProperty)
+        // Abandon the current value if there is no option.
+        if (names.Length == 0)
         {
-            var renderer = rendererProperty.objectReferenceValue as Renderer;
-            if (renderer == null) return null;
-
-            var material = renderer.sharedMaterial;
-            if (material == null) return null;
-
-            return material.shader;
+            materialProperty.stringValue = "";
+            return;
         }
 
-        // Cache property names provided within a specified shader.
-        static void CachePropertyNames(Shader shader)
-        {
-            // Exit early when the shader is same to the cached one.
-            if (shader == _cachedShader) return;
-
-            var temp = new List<string>();
-
-            var count = ShaderUtil.GetPropertyCount(shader);
-            for (var i = 0; i < count; i++)
-            {
-                var propType = ShaderUtil.GetPropertyType(shader, i);
-                if (propType == ShaderUtil.ShaderPropertyType.TexEnv)
-                    temp.Add(ShaderUtil.GetPropertyName(shader, i));
-            }
-
-            _propertyNames = temp.ToArray();
-            _cachedShader = shader;
-        }
-
-        #endregion
+        // Dropdown GUI
+        var index = System.Array.IndexOf(names, materialProperty.stringValue);
+        var newIndex = EditorGUILayout.Popup("Property", index, names);
+        if (index != newIndex) materialProperty.stringValue = names[newIndex];
     }
+
+    #endregion
+
+    #region Utility function
+
+    // Shader retrieval function
+    static Shader GetShaderFromRenderer(SerializedProperty property)
+    {
+        var renderer = property.objectReferenceValue as Renderer;
+        if (renderer == null) return null;
+
+        var material = renderer.sharedMaterial;
+        if (material == null) return null;
+
+        return material.shader;
+    }
+
+    #endregion
+
+    #region Property name cache
+
+    static Shader _cachedShader;
+    static string[] _cachedPropertyNames;
+
+    static bool IsPropertyTexture(Shader shader, int index)
+      => ShaderUtil.GetPropertyType(shader, index) ==
+         ShaderUtil.ShaderPropertyType.TexEnv;
+
+    static string[] CachePropertyNames(Shader shader)
+    {
+        if (shader == _cachedShader) return _cachedPropertyNames;
+
+        var names =
+          Enumerable.Range(0, ShaderUtil.GetPropertyCount(shader))
+          .Where(i => IsPropertyTexture(shader, i))
+          .Select(i => ShaderUtil.GetPropertyName(shader, i));
+
+        _cachedShader = shader;
+        _cachedPropertyNames = names.ToArray();
+
+        return _cachedPropertyNames;
+    }
+
+    #endregion
 }
+
+} // namespace Klak.Spout.Editor

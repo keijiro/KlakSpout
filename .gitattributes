@@ -9,10 +9,4 @@
 *.meta      text eol=lf
 
 *.h         text eol=lf
-*.cpp       text eol=lf
-*.cc        text eol=lf
 *.c         text eol=lf
-
-*.sln               text eol=crlf
-*.vcxproj           text eol=crlf
-*.vcxproj.filters   text eol=crlf

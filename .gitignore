@@ -16,9 +16,11 @@ Desktop.ini
 # Unity
 /Library
 /Logs
+/Recordings
+/UserSettings
 /Temp
 
 # Plugin
-/Plugin/build
-/Plugin/build32
-/Plugin/build64
+/Plugin/*.o
+/Plugin/*/*.o
+/Plugin/*.dll

@@ -6,9 +6,6 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Quad.unity
-    guid: c102c4b7108b0844f89cbc73fd8a8fb6
-  - enabled: 1
-    path: Assets/Stress.unity
-    guid: 7b522f2feebfbc049b1711f4c5f20e92
+    path: Assets/Benchmark.unity
+    guid: 58dcdb08bb9105547ba4115762d0ef21
   m_configObjects: {}

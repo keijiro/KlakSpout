@@ -1,12 +1,13 @@
 {
   "author": "Keijiro Takahashi",
+  "dependencies": { "com.unity.modules.screencapture": "1.0.0" },
   "description": "Cross-process texture sharing plugin (Spout protocol)",
   "displayName": "KlakSpout",
   "keywords": [ "unity" ],
-  "license": "MIT",
+  "license": "Unlicense",
   "name": "jp.keijiro.klak.spout",
   "repository": "github:keijiro/KlakSpout",
-  "unity": "2019.3",
+  "unity": "2020.3",
   "unityRelease": "1f1",
-  "version": "1.0.0"
+  "version": "2.0.0"
 }

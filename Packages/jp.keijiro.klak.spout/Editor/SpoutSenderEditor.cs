@@ -1,58 +1,73 @@
-// KlakSpout - Spout video frame sharing plugin for Unity
-// https://github.com/keijiro/KlakSpout
-
 using UnityEngine;
 using UnityEditor;
 
-namespace Klak.Spout
+namespace Klak.Spout.Editor {
+
+[CanEditMultipleObjects]
+[CustomEditor(typeof(SpoutSender))]
+sealed class SpoutSenderEditor : UnityEditor.Editor
 {
-    [CanEditMultipleObjects]
-    [CustomEditor(typeof(SpoutSender))]
-    sealed class SpoutSenderEditor : Editor
+    SerializedProperty _spoutName;
+    SerializedProperty _keepAlpha;
+    SerializedProperty _captureMethod;
+    SerializedProperty _sourceCamera;
+    SerializedProperty _sourceTexture;
+
+    static class Labels
     {
-        SerializedProperty _sourceTexture;
-        SerializedProperty _alphaSupport;
+        public static Label SpoutName = "Spout Name";
+    }
 
-        void OnEnable()
+    // Sender restart request
+    void RequestRestart()
+    {
+        // Dirty trick: We only can restart senders by modifying the
+        // spoutName property, so we modify it by an invalid name, then
+        // revert it.
+        foreach (SpoutSender send in targets)
         {
-            _sourceTexture = serializedObject.FindProperty("_sourceTexture");
-            _alphaSupport = serializedObject.FindProperty("_alphaSupport");
-        }
-
-        public override void OnInspectorGUI()
-        {
-            serializedObject.Update();
-
-            if (targets.Length == 1)
-            {
-                var sender = (SpoutSender)target;
-                var camera = sender.GetComponent<Camera>();
-
-                if (camera != null)
-                {
-                    EditorGUILayout.HelpBox(
-                        "Spout Sender is running in camera capture mode.",
-                        MessageType.None
-                    );
-
-                    // Hide the source texture property.
-                }
-                else
-                {
-                    EditorGUILayout.HelpBox(
-                        "Spout Sender is running in render texture mode.",
-                        MessageType.None
-                    );
-
-                    EditorGUILayout.PropertyField(_sourceTexture);
-                }
-            }
-            else
-                EditorGUILayout.PropertyField(_sourceTexture);
-
-            EditorGUILayout.PropertyField(_alphaSupport);
-
-            serializedObject.ApplyModifiedProperties();
+            send.spoutName = "";
+            send.spoutName = _spoutName.stringValue;
         }
     }
+
+    void OnEnable()
+    {
+        var finder = new PropertyFinder(serializedObject);
+        _spoutName = finder["_spoutName"];
+        _keepAlpha = finder["_keepAlpha"];
+        _captureMethod = finder["_captureMethod"];
+        _sourceCamera = finder["_sourceCamera"];
+        _sourceTexture = finder["_sourceTexture"];
+    }
+
+    public override void OnInspectorGUI()
+    {
+        serializedObject.Update();
+
+        EditorGUI.BeginChangeCheck();
+        EditorGUILayout.DelayedTextField(_spoutName, Labels.SpoutName);
+        var restart = EditorGUI.EndChangeCheck();
+
+        EditorGUILayout.PropertyField(_keepAlpha);
+        EditorGUILayout.PropertyField(_captureMethod);
+
+        EditorGUI.indentLevel++;
+
+        if (_captureMethod.hasMultipleDifferentValues ||
+            _captureMethod.enumValueIndex == (int)CaptureMethod.Camera)
+            EditorGUILayout.PropertyField(_sourceCamera);
+
+        if (_captureMethod.hasMultipleDifferentValues ||
+            _captureMethod.enumValueIndex == (int)CaptureMethod.Texture)
+            EditorGUILayout.PropertyField(_sourceTexture);
+
+        EditorGUI.indentLevel--;
+
+        serializedObject.ApplyModifiedProperties();
+
+        if (restart) RequestRestart();
+    }
 }
+
+} // namespace Klak.Spout.Editor

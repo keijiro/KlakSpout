@@ -77,7 +77,7 @@ UNITY_DECLARE_INTERFACE(IUnityGraphicsD3D12v6)
 
     ID3D12CommandQueue* (UNITY_INTERFACE_API * GetCommandQueue)();
 
-    ID3D12Resource* (UNITY_INTERFACE_API * TextureFromRenderBuffer)(UnityRenderBuffer * rb);
+    ID3D12Resource* (UNITY_INTERFACE_API * TextureFromRenderBuffer)(UnityRenderBuffer rb);
     ID3D12Resource* (UNITY_INTERFACE_API * TextureFromNativeTexture)(UnityTextureID texture);
 
     // Change the precondition for a specific user-defined event
@@ -106,7 +106,7 @@ UNITY_DECLARE_INTERFACE(IUnityGraphicsD3D12v5)
 
     ID3D12CommandQueue* (UNITY_INTERFACE_API * GetCommandQueue)();
 
-    ID3D12Resource* (UNITY_INTERFACE_API * TextureFromRenderBuffer)(UnityRenderBuffer * rb);
+    ID3D12Resource* (UNITY_INTERFACE_API * TextureFromRenderBuffer)(UnityRenderBuffer rb);
 };
 UNITY_REGISTER_INTERFACE_GUID(0xF5C8D8A37D37BC42ULL, 0xB02DFE93B5064A27ULL, IUnityGraphicsD3D12v5)
 

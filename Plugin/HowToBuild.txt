@@ -1,16 +1,4 @@
-Using CMake 3.15 or later.
+The Makefile in this directory uses Mingw-w64 to build the plugin. See the
+following repository for further instructions:
 
-For 32-bit build:
-cmake -S . -B build32 -DCMAKE_BUILD_TYPE=Release -A Win32
-cmake --build build32 --target install --config "Release"
-
-For 64-bit build:
-cmake -S . -B build64 -DCMAKE_BUILD_TYPE=Release -A x64
-cmake --build build64 --target install --config "Release"
-
-These correctly set the build type (Release/Debug) and architecture (32/64 bit)
-for multi-configuration generators (ex Visual Studio) and single-configuration
-generators (ex Makefiles) alike.
-
-If using an IDE such as Visual Studio Code, make sure the desired configs are
-also set (often Debug is the default build type).
+https://github.com/keijiro/UnityDX12MingwTest

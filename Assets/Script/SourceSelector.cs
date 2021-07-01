@@ -1,9 +1,7 @@
-// KlakSpout - Spout video frame sharing plugin for Unity
-// https://github.com/keijiro/KlakSpout
-
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
+using System.Linq;
 using Klak.Spout;
 
 public class SourceSelector : MonoBehaviour
@@ -11,43 +9,43 @@ public class SourceSelector : MonoBehaviour
     [SerializeField] Dropdown _dropdown = null;
 
     SpoutReceiver _receiver;
-
-    List<string> _sourceNames = new List<string>();
+    List<string> _sourceNames;
     bool _disableCallback;
 
-    void Start()
-    {
-        _receiver = GetComponent<SpoutReceiver>();
-    }
+    // HACK: Assuming that the dropdown has more than
+    // three child objects only while it's opened.
+    bool IsOpened => _dropdown.transform.childCount > 3;
+
+    void Start() => _receiver = GetComponent<SpoutReceiver>();
 
     void Update()
     {
-        // HACK: Assuming that the dropdown would have more than three child
-        // objects while the menu is opened. Stop updating it while visible.
-        if (_dropdown.transform.childCount > 3) return;
+        // Do nothing if the menu is opened.
+        if (IsOpened) return;
 
-        // Retrieve the Spout source names.
-        SpoutManager.GetSourceNames(_sourceNames);
+        // Spout source name retrieval
+        _sourceNames = SpoutManager.GetSourceNames().ToList();
 
-        // Update the current selection.
+        // Currect selection
         var index = _sourceNames.IndexOf(_receiver.sourceName);
+
+        // Append the current name to the list if it's not found.
         if (index < 0)
         {
-            // Append the current name to the list when it's not found.
             index = _sourceNames.Count;
             _sourceNames.Add(_receiver.sourceName);
         }
 
-        // We don't like to receive callback while editing options.
+        // Disable the callback while updating the menu options.
         _disableCallback = true;
 
-        // Update the menu options.
+        // Menu option update
         _dropdown.ClearOptions();
         _dropdown.AddOptions(_sourceNames);
         _dropdown.value = index;
         _dropdown.RefreshShownValue();
 
-        // Resume receiving callback.
+        // Resume the callback.
         _disableCallback = false;
     }
 
