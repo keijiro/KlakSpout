@@ -22,6 +22,7 @@ sealed class Sender : System.IDisposable
     {
         // Plugin object allocation
         _plugin = Plugin.CreateSender(target, texture.width, texture.height);
+        if (_plugin == IntPtr.Zero) return;
 
         // Event kicker (heap block for interop communication)
         _event = new EventKicker
@@ -33,7 +34,7 @@ sealed class Sender : System.IDisposable
 
     public void Dispose()
     {
-        if (_plugin != System.IntPtr.Zero)
+        if (_plugin != IntPtr.Zero)
         {
             // Isssue the closer event to destroy the plugin object from the
             // render thread.
@@ -55,7 +56,7 @@ sealed class Sender : System.IDisposable
     #region Frame update method
 
     public void Update()
-      => _event.IssuePluginEvent(EventID.UpdateSender);
+      => _event?.IssuePluginEvent(EventID.UpdateSender);
 
     #endregion
 }
