@@ -14,7 +14,7 @@ static class Plugin
         public IntPtr texturePointer;
     }
 
-#if UNITY_EDITOR_WIN && UNITY_STANDALONE_WIN
+#if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
 
     [DllImport("KlakSpout")]
     public static extern IntPtr GetRenderEventCallback();
