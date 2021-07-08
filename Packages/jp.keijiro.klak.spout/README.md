@@ -1,7 +1,7 @@
 KlakSpout
 =========
 
-![gif](https://user-images.githubusercontent.com/343936/124217162-c3843000-db32-11eb-81ee-9f81a5b467fe.gif)
+![gif](https://user-images.githubusercontent.com/343936/124232423-993f6c00-db4c-11eb-80d3-4c660a2025d9.gif)
 ![gif](https://user-images.githubusercontent.com/343936/124217164-c4b55d00-db32-11eb-88f1-735a04bfb235.gif)
 
 **KlakSpout** is a Unity plugin that allows Unity to send/receive video streams
@@ -39,7 +39,7 @@ To the `scopedRegistries` section:
 To the `dependencies` section:
 
 ```
-"jp.keijiro.klak.spout": "2.0.1"
+"jp.keijiro.klak.spout": "2.0.2"
 ```
 
 After changes, the manifest file should look like below:
@@ -54,7 +54,7 @@ After changes, the manifest file should look like below:
     }
   ],
   "dependencies": {
-    "jp.keijiro.klak.spout": "2.0.1",
+    "jp.keijiro.klak.spout": "2.0.2",
 ...
 ```
 
