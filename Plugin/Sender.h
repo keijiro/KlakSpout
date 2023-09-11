@@ -43,6 +43,10 @@ public:
             unknown.As(&d3d11);
             updateTexture(d3d11.Get());
         }
+        
+        // update frame count, only took into account if FrameCount is enabled
+        // in the registry, which should have be done in the initializer
+        updateFrameCount();
     }
 
 private:
@@ -50,9 +54,35 @@ private:
     std::string _name;
     int _width, _height;
     WRL::ComPtr<ID3D11Texture2D> _texture;
+    HANDLE _hSemaphore;
+
+    void updateFrameCount() {
+        const DWORD dwWaitResult = WaitForSingleObject(_hSemaphore, 0);
+        switch (dwWaitResult) {
+        case WAIT_OBJECT_0:
+            // Release the frame counting semaphore to increase it's count.
+            // so that the receiver can retrieve the new count.
+            // Increment by 2 because WaitForSingleObject decremented it.
+            if (ReleaseSemaphore(_hSemaphore, 2, NULL) == false) {
+                LogError("Sender::updateFrameCount - ReleaseSemaphore failed", _name, 0);
+            }
+            return;
+        case WAIT_ABANDONED:
+            LogError("Sender::updateFrameCount - WAIT_ABANDONED", _name, 0);
+            break;
+        case WAIT_FAILED:
+            LogError("Sender::updateFrameCount - WAIT_FAILED", _name, 0);
+            break;
+        default:
+            break;
+        }
+    }
 
     void initialize()
     {
+        // Enable FrameCount in the registry, else it will not be sent nor received
+        WriteDwordToRegistry(HKEY_CURRENT_USER, "SOFTWARE\\Leading Edge\\Spout", "Framecount", 1);
+
         // Make a Spout-compatible texture description.
         D3D11_TEXTURE2D_DESC desc = {};
         desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -83,6 +113,15 @@ private:
         // Create a Spout sender object for the shared texture.
         auto res = _system->spout
           .CreateSender(_name.c_str(), _width, _height, handle, desc.Format);
+
+        std::string semaphore_name = _name + "_Count_Semaphore";
+
+        // Create or open a named frame count semaphore with the name
+        _hSemaphore = CreateSemaphoreA(
+            NULL, // default security attributes
+            1, // initial count
+            LONG_MAX, // maximum count - LONG_MAX (2147483647) at 60fps = 2071 days
+            (LPSTR)semaphore_name.c_str());
 
         if (!res) LogError("CreateSender", _name, 0);
     }
