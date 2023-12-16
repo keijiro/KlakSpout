@@ -85,10 +85,15 @@ sealed class Receiver : System.IDisposable
         // We try creating a receiver texture every frame until getting a
         // correct one.
         if (_texture == null && data.texturePointer != IntPtr.Zero)
+        {
+            uint dxgiFormat = (uint)data.textureFormat;
+            TextureFormat format = DXGIToTextureFormat.Convert((DXGIFormat)dxgiFormat);
+            
             _texture = Texture2D.CreateExternalTexture
-              ((int)data.width, (int)data.height, TextureFormat.RGBA32,
-               false, false, data.texturePointer);
-
+            ((int)data.width, (int)data.height, format,
+                false, false, data.texturePointer);
+        }
+        
         // Update event for the render thread
         _event.IssuePluginEvent(EventID.UpdateReceiver);
     }

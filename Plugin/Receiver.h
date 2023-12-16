@@ -51,6 +51,7 @@ public:
 
         _width = width;
         _height = height;
+        _format = format;
 
         if (FAILED(hres)) LogError("OpenSharedResource", _name, hres);
     }
@@ -59,14 +60,14 @@ public:
     // Should match with Klak.Spout.Plugin.ReceiverData (Plugin.cs)
     struct InteropData
     {
-        unsigned int width, height;
+        unsigned int width, height, format;
         void* texture_pointer;
     };
 
     InteropData getInteropData() const
     {
         return InteropData
-          { .width = _width, .height = _height,
+          { .width = _width, .height = _height, .format = _format,
             .texture_pointer = _texture.Get() };
     }
 
@@ -74,6 +75,7 @@ private:
 
     std::string _name;
     unsigned int _width, _height;
+    DWORD _format;
     WRL::ComPtr<IUnknown> _texture;
 };
 
