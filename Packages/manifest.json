@@ -1,6 +1,9 @@
 {
   "dependencies": {
-    "com.unity.render-pipelines.universal": "10.5.1",
+    "com.unity.ai.navigation": "2.0.8",
+    "com.unity.multiplayer.center": "1.0.0",
+    "com.unity.render-pipelines.universal": "17.0.4",
+    "com.unity.modules.accessibility": "1.0.0",
     "com.unity.modules.physics": "1.0.0"
   }
 }
