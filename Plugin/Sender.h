@@ -55,7 +55,7 @@ private:
     {
         // Make a Spout-compatible texture description.
         D3D11_TEXTURE2D_DESC desc = {};
-        desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
         desc.Width = _width;
         desc.Height = _height;
         desc.MipLevels = 1;
