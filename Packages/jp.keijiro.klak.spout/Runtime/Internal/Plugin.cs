@@ -11,6 +11,7 @@ static class Plugin
     public struct ReceiverData
     {
         public uint width, height;
+        public Format format;
         public IntPtr texturePointer;
     }
 

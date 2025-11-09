@@ -2,6 +2,7 @@
 
 #include "Common.h"
 #include "System.h"
+#include "Format.h"
 
 namespace KlakSpout {
 
@@ -51,6 +52,7 @@ public:
 
         _width = width;
         _height = height;
+        _format = ToFormat(static_cast<DXGI_FORMAT>(format));
 
         if (FAILED(hres)) LogError("OpenSharedResource", _name, hres);
     }
@@ -60,13 +62,14 @@ public:
     struct InteropData
     {
         unsigned int width, height;
+        Format format;
         void* texture_pointer;
     };
 
     InteropData getInteropData() const
     {
         return InteropData
-          { .width = _width, .height = _height,
+          { .width = _width, .height = _height, .format = _format,
             .texture_pointer = _texture.Get() };
     }
 
@@ -74,6 +77,7 @@ private:
 
     std::string _name;
     unsigned int _width, _height;
+    Format _format;
     WRL::ComPtr<IUnknown> _texture;
 };
 
