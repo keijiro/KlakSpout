@@ -83,16 +83,18 @@ public sealed partial class SpoutSender : MonoBehaviour
 
     #endregion
 
-    #region MonoBehaviour implementation
+    #region Capture coroutine
 
-    void OnDisable()
+    System.Collections.IEnumerator CaptureCoroutine()
     {
-        ReleaseSender();
-        PrepareBuffer(0, 0);
-        PrepareCameraCapture(null);
+        for (var eof = new WaitForEndOfFrame(); true;)
+        {
+            yield return eof;
+            CaptureFrame();
+        }
     }
 
-    void Update()
+    void CaptureFrame()
     {
         // GameView capture mode
         if (_captureMethod == CaptureMethod.GameView)
@@ -125,6 +127,21 @@ public sealed partial class SpoutSender : MonoBehaviour
 
         // Sender plugin-side update
         _sender.Update();
+    }
+
+    #endregion
+
+    #region MonoBehaviour implementation
+
+    void OnEnable()
+      => StartCoroutine(CaptureCoroutine());
+
+    void OnDisable()
+    {
+        StopAllCoroutines();
+        ReleaseSender();
+        PrepareBuffer(0, 0);
+        PrepareCameraCapture(null);
     }
 
     #endregion
