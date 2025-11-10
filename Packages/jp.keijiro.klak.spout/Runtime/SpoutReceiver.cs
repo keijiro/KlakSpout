@@ -90,7 +90,7 @@ public sealed partial class SpoutReceiver : MonoBehaviour
         if (buffer.isDataSRGB)
             Blitter.BlitFromSrgb(_resources, _receiver.Texture, buffer);
         else
-            Graphics.Blit(_receiver.Texture, buffer);
+            Blitter.Blit(_resources, _receiver.Texture, buffer, true);
 
         // Renderer override
         if (_targetRenderer != null)
