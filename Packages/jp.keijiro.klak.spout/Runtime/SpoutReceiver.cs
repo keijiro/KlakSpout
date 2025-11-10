@@ -87,7 +87,10 @@ public sealed partial class SpoutReceiver : MonoBehaviour
 
         // Received texture buffering
         var buffer = PrepareBuffer();
-        Blitter.BlitFromSrgb(_resources, _receiver.Texture, buffer);
+        if (buffer.isDataSRGB)
+            Blitter.BlitFromSrgb(_resources, _receiver.Texture, buffer);
+        else
+            Graphics.Blit(_receiver.Texture, buffer);
 
         // Renderer override
         if (_targetRenderer != null)
