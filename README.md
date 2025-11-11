@@ -11,7 +11,7 @@ through the [Spout] system.
 ## System Requirements
 
 - Unity 2022.3 or later
-- Windows system with DirectX 11/12 support
+- Windows system with Direct3D 11/12 support
 
 KlakSpout currently supports only Direct3D 11 and 12; other graphics APIs such
 as OpenGL or Vulkan aren't available.
@@ -25,9 +25,9 @@ registry to your project.
 [these instructions]:
   https://gist.github.com/keijiro/f8c7e8ff29bfe63d86b888901b82644c
 
-## Spout Sender component
+## Spout Sender Component
 
-![Sender](https://user-images.githubusercontent.com/343936/124219895-e2d18c00-db37-11eb-8f96-0829bb757968.png)
+![Sender](https://github.com/user-attachments/assets/ef1f7388-fe06-4054-9ddb-dd379f96dc61)
 
 Use the **Spout Sender** component to send a video stream. It provides three
 capture methods:
@@ -46,9 +46,9 @@ capture method to output alpha.
 [alpha output]:
   https://docs.unity3d.com/Packages/com.unity.render-pipelines.high-definition@12.0/manual/Alpha-Output.html
 
-## Spout Receiver component
+## Spout Receiver Component
 
-![Receiver](https://user-images.githubusercontent.com/343936/124220011-1f9d8300-db38-11eb-985a-2f5bebe4c058.png)
+![Receiver](https://github.com/user-attachments/assets/469c535a-2917-4dc8-9b04-8ee74d342fd6)
 
 Use the **Spout Receiver** component to receive a video stream. It stores
 incoming frames in the Target Texture and overrides the material property set
@@ -57,7 +57,7 @@ in the Target Renderer.
 You can also access the received texture via the
 `SpoutReceiver.receivedTexture` property.
 
-## Scripting interface
+## Scripting Interface
 
 Enumerate available Spout senders with the `SpoutManager` class; see the
 [SourceSelector example] for details.
@@ -69,7 +69,7 @@ You can create Spout senders or receivers at runtime, but you must assign the
 `SpoutResources` asset (which holds references to package assets) after
 instantiation.
 
-## Frequently asked questions
+## Frequently Asked Questions
 
 ### What's the difference between NDI and Spout?
 
