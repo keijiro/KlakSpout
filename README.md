@@ -23,7 +23,7 @@ KlakSpout currently supports receiving the following pixel formats:
 - R8G8B8A8 UNorm (sRGB/linear)
 - B8G8R8A8 UNorm (sRGB/linear)
 - R16G16B16A16 Half Float
-- R32G32B32A32 Float 
+- R32G32B32A32 Float
 
 Most applications use R8G8B8A8 or B8G8R8A8, so you can receive frames without
 extra steps. When using [TouchDesigner], choose the appropriate pixel format in

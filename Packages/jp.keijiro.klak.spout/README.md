@@ -1,125 +1,101 @@
-KlakSpout
-=========
+# KlakSpout
 
 ![gif](https://user-images.githubusercontent.com/343936/124232423-993f6c00-db4c-11eb-80d3-4c660a2025d9.gif)
 ![gif](https://user-images.githubusercontent.com/343936/124217164-c4b55d00-db32-11eb-88f1-735a04bfb235.gif)
 
-**KlakSpout** is a Unity plugin that allows Unity to send/receive video streams
-using the [Spout] system.
+**KlakSpout** is a Unity plugin that lets Unity send and receive video streams
+through the [Spout] system.
 
 [Spout]: http://spout.zeal.co/
 
-System requirements
--------------------
+## System Requirements
 
-- Unity 2020.3 or later
-- Windows system with DirectX 11/12 support
+- Unity 2022.3 or later
+- Windows system with Direct3D 11/12 support
 
-Currently, KlakSpout only supports Direct3D 11 and 12. You can't use other
-graphics APIs like OpenGL or Vulkan.
+KlakSpout currently supports only Direct3D 11 and 12; other graphics APIs such
+as OpenGL or Vulkan aren't available.
 
-How to install
---------------
+## Pixel Format Compatibility
 
-This package uses the [scoped registry] feature to resolve package dependencies.
-Please add the following sections to the manifest file (Packages/manifest.json).
+KlakSpout currently supports receiving the following pixel formats:
 
-[scoped registry]: https://docs.unity3d.com/Manual/upm-scoped.html
+- R8G8B8A8 UNorm (sRGB/linear)
+- B8G8R8A8 UNorm (sRGB/linear)
+- R16G16B16A16 Half Float
+- R32G32B32A32 Float
 
-To the `scopedRegistries` section:
+Most applications use R8G8B8A8 or B8G8R8A8, so you can receive frames without
+extra steps. When using [TouchDesigner], choose the appropriate pixel format in
+the Spout Out TOP.
 
-```
-{
-  "name": "Keijiro",
-  "url": "https://registry.npmjs.com",
-  "scopes": [ "jp.keijiro" ]
-}
-```
+[TouchDesigner]: https://derivative.ca/
 
-To the `dependencies` section:
+For now, KlakSpout only supports sending the R8G8B8A8 UNorm format.
 
-```
-"jp.keijiro.klak.spout": "2.0.3"
-```
+## How to Install
 
-After changes, the manifest file should look like below:
+Install the KlakSpout package (`jp.keijiro.klak.spout`) from the "Keijiro"
+scoped registry in Package Manager. Follow [these instructions] to add the
+registry to your project.
 
-```
-{
-  "scopedRegistries": [
-    {
-      "name": "Keijiro",
-      "url": "https://registry.npmjs.com",
-      "scopes": [ "jp.keijiro" ]
-    }
-  ],
-  "dependencies": {
-    "jp.keijiro.klak.spout": "2.0.3",
-...
-```
+[these instructions]:
+  https://gist.github.com/keijiro/f8c7e8ff29bfe63d86b888901b82644c
 
-Spout Sender component
-----------------------
+## Spout Sender Component
 
-![Sender](https://user-images.githubusercontent.com/343936/124219895-e2d18c00-db37-11eb-8f96-0829bb757968.png)
+![Sender](https://github.com/user-attachments/assets/ef1f7388-fe06-4054-9ddb-dd379f96dc61)
 
-You can send a video stream using the **Spout Sender** component. There are
-three capture methods available:
+Use the **Spout Sender** component to send a video stream. It provides three
+capture methods:
 
 - **Game View**: Captures the content of the Game View.
 - **Camera**: Captures a specified camera.
 - **Texture**: Captures a 2D texture or a Render Texture.
 
-Note that the Camera capture method is only available on URP and HDRP -- You
-can't use it on the built-in render pipeline.
+The Camera capture method is available only on URP and HDRP—you can't use it on
+the built-in render pipeline.
 
-The **KeepAlpha** property controls if it keeps or clears the content of the
-alpha channel. Note that you have to enable [alpha output] when using HDRP.
-Also note that you have to use the Texture capture method to enable alpha
-output on URP.
+The **KeepAlpha** property controls whether the alpha channel is preserved or
+cleared. Enable [alpha output] when using HDRP. On URP, select the Texture
+capture method to output alpha.
 
 [alpha output]:
   https://docs.unity3d.com/Packages/com.unity.render-pipelines.high-definition@12.0/manual/Alpha-Output.html
 
-Spout Receiver component
-------------------------
+## Spout Receiver Component
 
-![Receiver](https://user-images.githubusercontent.com/343936/124220011-1f9d8300-db38-11eb-985a-2f5bebe4c058.png)
+![Receiver](https://github.com/user-attachments/assets/469c535a-2917-4dc8-9b04-8ee74d342fd6)
 
-You can receive a video stream using the **Spout Receiver** component. It stores
-received frames to the Target Texture. It also overrides a material property
-specified in the Target Renderer.
+Use the **Spout Receiver** component to receive a video stream. It stores
+incoming frames in the Target Texture and overrides the material property set
+in the Target Renderer.
 
-You also can refer to the received texture via the
+You can also access the received texture via the
 `SpoutReceiver.receivedTexture` property.
 
-Scripting interface
--------------------
+## Scripting Interface
 
-You can enumerate available Spout senders using the `SpoutManager` class.
-Please check the [SourceSelector example] for further usage.
+Enumerate available Spout senders with the `SpoutManager` class; see the
+[SourceSelector example] for details.
 
 [SourceSelector example]:
-  https://github.com/keijiro/KlakSpout/blob/main/Assets/Script/SourceSelector.cs
+  https://github.com/keijiro/KlakSpout/blob/main/Assets/Scripts/SourceSelector.cs
 
-You can dynamically create a Spout sender/receiver, but you must give the
-`SpoutResources` asset (which holds references to the package assets) after
-instantiation. Please see the [benchmark examples] for detailed steps.
+You can create Spout senders or receivers at runtime, but you must assign the
+`SpoutResources` asset (which holds references to package assets) after
+instantiation.
 
-[benchmark examples]:
-  https://github.com/keijiro/KlakSpout/blob/main/Assets/Script/SenderBenchmark.cs
-
-Frequently asked questions
---------------------------
+## Frequently Asked Questions
 
 ### What's the difference between NDI and Spout?
 
 - NDI: Video-over-IP codec/protocol
 - Spout: Interprocess GPU memory sharing on DirectX
 
-NDI requires CPU/memory/network load, but it's greatly versatile.
+NDI consumes CPU, memory, and network bandwidth but is highly versatile.
 
-Spout doesn't produce any CPU load, but its range of application is limited.
+Spout adds virtually no CPU load, though its applications are more limited.
 
-If you're trying to share videos between applications running on a single
-Windows PC, Spout would be a better solution.
+If you need to share video between applications on a single Windows PC, Spout
+is usually the better option.
