@@ -18,9 +18,6 @@ public sealed class SourceSelector : MonoBehaviour
     DropdownField UISelector
       => UIRoot.Q<DropdownField>("source-selector");
 
-    void SelectSource(string name)
-      => _receiver.sourceName = name;
-
     void Start()
     {
         UISelector.dataSource = this;
