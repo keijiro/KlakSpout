@@ -99,3 +99,8 @@ Spout adds virtually no CPU load, though its applications are more limited.
 
 If you need to share video between applications on a single Windows PC, Spout
 is usually the better option.
+
+## Related Repositories
+
+- [Unity-OBS-AlphaWorkflowSample](https://github.com/keijiro/Unity-OBS-AlphaWorkflowSample)
+- [KlakSpoutTestSuite](https://github.com/keijiro/KlakSpoutTestSuite)
