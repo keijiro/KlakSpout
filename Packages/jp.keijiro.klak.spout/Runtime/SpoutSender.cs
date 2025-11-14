@@ -100,6 +100,7 @@ public sealed partial class SpoutSender : MonoBehaviour
         if (_captureMethod == CaptureMethod.GameView)
         {
             PrepareBuffer(Screen.width, Screen.height);
+            RenderTexture.active = null;
             var temp = RenderTexture.GetTemporary(Screen.width, Screen.height, 0);
             ScreenCapture.CaptureScreenshotIntoRenderTexture(temp);
             Blitter.BlitVFlip(_resources, temp, _buffer, _keepAlpha);
