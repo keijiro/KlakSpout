@@ -24,3 +24,6 @@ Desktop.ini
 /Plugin/*.o
 /Plugin/*/*.o
 /Plugin/*.dll
+
+# Packaging artifacts
+/*.tgz

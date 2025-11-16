@@ -1,13 +1,14 @@
 {
+  "name": "jp.keijiro.klak.spout",
+  "version": "2.0.5",
+  "displayName": "KlakSpout",
+  "description": "Cross-process texture sharing using Spout.",
+  "unity": "2022.3",
   "author": "Keijiro Takahashi",
   "dependencies": { "com.unity.modules.screencapture": "1.0.0" },
-  "description": "Cross-process texture sharing using Spout.",
-  "displayName": "KlakSpout",
-  "keywords": [ "unity" ],
+  "changelogUrl": "https://github.com/keijiro/KlakSpout/blob/main/CHANGELOG.md",
+  "documentationUrl": "https://github.com/keijiro/KlakSpout",
+  "licensesUrl": "https://github.com/keijiro/KlakSpout/blob/main/LICENSE",
   "license": "Unlicense",
-  "name": "jp.keijiro.klak.spout",
-  "repository": "github:keijiro/KlakSpout",
-  "unity": "2022.3",
-  "unityRelease": "1f1",
-  "version": "2.0.5"
+  "_upm": { "changelog": "" }
 }
